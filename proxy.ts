@@ -7,7 +7,7 @@ const adminAuthRoutes = [
 ]
 const userAuthRoutes = ["/auth/login", "/auth/register"]
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const token = request.cookies.get("token")?.value
   const userRole = request.cookies.get("userRole")?.value
