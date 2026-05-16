@@ -1,0 +1,23 @@
+import { cookies } from "next/headers"
+import { getDiscoverEvents } from "@/app/actions/user-dashboard"
+import { UserEventsView } from "@/components/user/events/UserEventsView"
+
+export default async function UserEventsPage() {
+  const cookieStore = await cookies()
+  const email = cookieStore.get("userEmail")?.value || ""
+
+  const events = await getDiscoverEvents(email)
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Discover Events</h1>
+        <p className="text-muted-foreground">
+          Find and register for upcoming community events.
+        </p>
+      </div>
+
+      <UserEventsView initialEvents={events} />
+    </div>
+  )
+}

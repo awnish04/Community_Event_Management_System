@@ -1,0 +1,191 @@
+import {
+  pgTable,
+  serial,
+  varchar,
+  text,
+  timestamp,
+  integer,
+  pgEnum,
+} from "drizzle-orm/pg-core"
+import { relations } from "drizzle-orm"
+
+// Enums
+export const userRoleEnum = pgEnum("user_role", ["admin", "user"])
+export const registrationStatusEnum = pgEnum("registration_status", [
+  "pending",
+  "confirmed",
+  "cancelled",
+  "waitlist",
+])
+
+// Users table (for authentication and role management)
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  phone: varchar("phone", { length: 20 }),
+  password: varchar("password", { length: 255 }).notNull(),
+  role: userRoleEnum("role").default("user").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Participants table (extends users - for event registration)
+export const participants = pgTable("participants", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  bio: text("bio"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Venues table
+export const venues = pgTable("venues", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  address: text("address").notNull(),
+  capacity: integer("capacity").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Activities table
+export const activities = pgTable("activities", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  type: varchar("type", { length: 100 }), // workshop, talk, game, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Events table
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  eventDate: timestamp("event_date").notNull(),
+  eventTime: varchar("event_time", { length: 50 }).notNull(),
+  capacity: integer("capacity").notNull(),
+  createdBy: integer("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Registrations table (junction table: Participants <-> Events)
+export const registrations = pgTable("registrations", {
+  id: serial("id").primaryKey(),
+  participantId: integer("participant_id")
+    .references(() => participants.id, { onDelete: "cascade" })
+    .notNull(),
+  eventId: integer("event_id")
+    .references(() => events.id, { onDelete: "cascade" })
+    .notNull(),
+  status: registrationStatusEnum("status").default("pending").notNull(),
+  registrationDate: timestamp("registration_date").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Event Activities junction table (Events <-> Activities many-to-many)
+export const eventActivities = pgTable("event_activities", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id")
+    .references(() => events.id, { onDelete: "cascade" })
+    .notNull(),
+  activityId: integer("activity_id")
+    .references(() => activities.id, { onDelete: "cascade" })
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// Event Venues junction table (Events <-> Venues many-to-many)
+export const eventVenues = pgTable("event_venues", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id")
+    .references(() => events.id, { onDelete: "cascade" })
+    .notNull(),
+  venueId: integer("venue_id")
+    .references(() => venues.id, { onDelete: "cascade" })
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// Relations
+export const usersRelations = relations(users, ({ one, many }) => ({
+  participant: one(participants, {
+    fields: [users.id],
+    references: [participants.userId],
+  }),
+  createdEvents: many(events),
+}))
+
+export const participantsRelations = relations(
+  participants,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [participants.userId],
+      references: [users.id],
+    }),
+    registrations: many(registrations),
+  })
+)
+
+export const venuesRelations = relations(venues, ({ many }) => ({
+  eventVenues: many(eventVenues),
+}))
+
+export const activitiesRelations = relations(activities, ({ many }) => ({
+  eventActivities: many(eventActivities),
+}))
+
+export const eventsRelations = relations(events, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [events.createdBy],
+    references: [users.id],
+  }),
+  registrations: many(registrations),
+  eventActivities: many(eventActivities),
+  eventVenues: many(eventVenues),
+}))
+
+export const registrationsRelations = relations(registrations, ({ one }) => ({
+  participant: one(participants, {
+    fields: [registrations.participantId],
+    references: [participants.id],
+  }),
+  event: one(events, {
+    fields: [registrations.eventId],
+    references: [events.id],
+  }),
+}))
+
+export const eventActivitiesRelations = relations(
+  eventActivities,
+  ({ one }) => ({
+    event: one(events, {
+      fields: [eventActivities.eventId],
+      references: [events.id],
+    }),
+    activity: one(activities, {
+      fields: [eventActivities.activityId],
+      references: [activities.id],
+    }),
+  })
+)
+
+export const eventVenuesRelations = relations(eventVenues, ({ one }) => ({
+  event: one(events, {
+    fields: [eventVenues.eventId],
+    references: [events.id],
+  }),
+  venue: one(venues, {
+    fields: [eventVenues.venueId],
+    references: [venues.id],
+  }),
+}))
