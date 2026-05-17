@@ -32,7 +32,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Search, Plus, Pencil, Trash2, Loader2 } from "lucide-react"
-import { createActivity } from "@/app/actions/activities"
+import {
+  createActivity,
+  editActivity,
+  deleteActivity,
+} from "@/app/actions/activities"
 
 interface Activity {
   id: number
@@ -96,12 +100,14 @@ function CreateActivityDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger>
-        <Button size="sm" className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
-          Add Activity
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button size="sm" className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            New Activity
+          </Button>
+        }
+      />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Activity</DialogTitle>
@@ -174,6 +180,192 @@ function CreateActivityDialog() {
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function EditActivityDialog({ activity }: { activity: Activity }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const [type, setType] = useState<string | null>(activity.type)
+
+  function handleOpenChange(val: boolean) {
+    if (!isPending) {
+      setOpen(val)
+      if (!val) {
+        setError(null)
+        setType(activity.type)
+      }
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    const formData = new FormData(e.currentTarget)
+    if (type) formData.set("type", type)
+
+    startTransition(async () => {
+      try {
+        await editActivity(activity.id, formData)
+        setOpen(false)
+        router.refresh()
+      } catch (err) {
+        if (err instanceof Error) setError(err.message)
+      }
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger
+        render={
+          <Button variant="ghost" size="icon-sm">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Activity</DialogTitle>
+          <DialogDescription>
+            Update the details for this activity.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          {error && (
+            <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`ac-name-${activity.id}`}>Activity Name *</Label>
+            <Input
+              id={`ac-name-${activity.id}`}
+              name="name"
+              defaultValue={activity.name}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`ac-type-${activity.id}`}>
+              Type{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <Input
+              id={`ac-type-${activity.id}`}
+              name="type"
+              placeholder="e.g. workshop, talk, networking..."
+              value={type || ""}
+              onChange={(e) => setType(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`ac-description-${activity.id}`}>
+              Description{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <Textarea
+              id={`ac-description-${activity.id}`}
+              name="description"
+              defaultValue={activity.description || ""}
+              rows={3}
+            />
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending} className="gap-2">
+              {isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Pencil className="size-4" />
+              )}
+              {isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeleteActivityDialog({ activity }: { activity: Activity }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  function handleDelete() {
+    startTransition(async () => {
+      await deleteActivity(activity.id)
+      setOpen(false)
+      router.refresh()
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete Activity</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete <strong>{activity.name}</strong>?
+            This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isPending}
+            className="gap-2"
+          >
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Trash2 className="size-4" />
+            )}
+            {isPending ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
@@ -264,16 +456,8 @@ export function ActivitiesTable({ activities }: { activities: Activity[] }) {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon-sm">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          <EditActivityDialog activity={activity} />
+                          <DeleteActivityDialog activity={activity} />
                         </div>
                       </td>
                     </tr>

@@ -32,7 +32,7 @@ import {
   Users,
   Loader2,
 } from "lucide-react"
-import { createVenue } from "@/app/actions/events"
+import { createVenue, editVenue, deleteVenue } from "@/app/actions/events"
 
 interface Venue {
   id: number
@@ -74,12 +74,14 @@ function CreateVenueDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger>
-        <Button size="sm" className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
-          Add Venue
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button size="sm" className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            Add Venue
+          </Button>
+        }
+      />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Venue</DialogTitle>
@@ -162,6 +164,192 @@ function CreateVenueDialog() {
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function EditVenueDialog({ venue }: { venue: Venue }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  function handleOpenChange(val: boolean) {
+    if (!isPending) {
+      setOpen(val)
+      if (!val) setError(null)
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    const formData = new FormData(e.currentTarget)
+
+    startTransition(async () => {
+      try {
+        await editVenue(venue.id, formData)
+        setOpen(false)
+        router.refresh()
+      } catch (err) {
+        if (err instanceof Error) setError(err.message)
+      }
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger
+        render={
+          <Button variant="ghost" size="icon-sm">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Venue</DialogTitle>
+          <DialogDescription>
+            Update the details for this venue.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          {error && (
+            <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`vn-name-${venue.id}`}>Venue Name *</Label>
+            <Input
+              id={`vn-name-${venue.id}`}
+              name="name"
+              defaultValue={venue.name}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`vn-address-${venue.id}`}>Address *</Label>
+            <Input
+              id={`vn-address-${venue.id}`}
+              name="address"
+              defaultValue={venue.address}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`vn-capacity-${venue.id}`}>Capacity *</Label>
+            <Input
+              id={`vn-capacity-${venue.id}`}
+              name="capacity"
+              type="number"
+              min="1"
+              defaultValue={venue.capacity}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`vn-description-${venue.id}`}>
+              Description{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <Textarea
+              id={`vn-description-${venue.id}`}
+              name="description"
+              defaultValue={venue.description || ""}
+              rows={3}
+            />
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending} className="gap-2">
+              {isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Pencil className="size-4" />
+              )}
+              {isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeleteVenueDialog({ venue }: { venue: Venue }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  function handleDelete() {
+    startTransition(async () => {
+      await deleteVenue(venue.id)
+      setOpen(false)
+      router.refresh()
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete Venue</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete <strong>{venue.name}</strong>? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isPending}
+            className="gap-2"
+          >
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Trash2 className="size-4" />
+            )}
+            {isPending ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
@@ -256,16 +444,8 @@ export function VenuesTable({ venues }: { venues: Venue[] }) {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon-sm">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <EditVenueDialog venue={venue} />
+                        <DeleteVenueDialog venue={venue} />
                       </div>
                     </td>
                   </tr>

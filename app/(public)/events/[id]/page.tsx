@@ -1,6 +1,13 @@
 import { notFound } from "next/navigation"
 import { db } from "@/db"
-import { events, venues, eventVenues, registrations, eventActivities, activities } from "@/db/schema"
+import {
+  events,
+  venues,
+  eventVenues,
+  registrations,
+  eventActivities,
+  activities,
+} from "@/db/schema"
 import { eq, and, sql } from "drizzle-orm"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,8 +29,6 @@ import {
   Activity,
 } from "lucide-react"
 import Link from "next/link"
-import { RegisterForm } from "@/components/events/RegisterForm"
-
 async function getEvent(id: number) {
   try {
     const [event] = await db
@@ -103,17 +108,9 @@ export default async function EventDetailPage({
 
   return (
     <div className="container mx-auto px-4 py-12">
-      {/* Back Button */}
-      <Link href="/events">
-        <Button variant="ghost" className="mb-6 gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Events
-        </Button>
-      </Link>
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="mx-auto max-w-4xl">
         {/* Main Content */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="space-y-6">
           {/* Event Header */}
           <div>
             <div className="mb-4 flex items-start justify-between">
@@ -125,8 +122,8 @@ export default async function EventDetailPage({
                   {event.currentRegistrations}/{event.capacity} Registered
                 </Badge>
               </div>
-              <Button variant="outline" size="icon">
-                <Share2 className="h-4 w-4" />
+              <Button render={<Link href="/auth/register" />}>
+                Register for Event
               </Button>
             </div>
             <h1 className="mb-4 text-4xl font-bold">{event.name}</h1>
@@ -192,9 +189,7 @@ export default async function EventDetailPage({
                           )}
                         </>
                       ) : (
-                        <p className="text-sm text-muted-foreground">
-                          TBA
-                        </p>
+                        <p className="text-sm text-muted-foreground">TBA</p>
                       )}
                     </div>
                   </div>
@@ -250,28 +245,6 @@ export default async function EventDetailPage({
               </div>
             </>
           )}
-        </div>
-
-        {/* Sidebar — Registration */}
-        <div className="lg:col-span-1">
-          <Card className="sticky top-20">
-            <CardHeader>
-              <CardTitle>Register for Event</CardTitle>
-              <CardDescription>
-                Secure your spot at this amazing event
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RegisterForm
-                eventId={event.id}
-                availableSpots={event.availableSpots}
-                capacity={event.capacity}
-                currentRegistrations={event.currentRegistrations}
-                occupancyPercentage={event.occupancyPercentage}
-                isFull={event.isFull}
-              />
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

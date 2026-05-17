@@ -32,25 +32,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   Search,
   Plus,
   Pencil,
   Trash2,
-  MoreHorizontal,
   Eye,
   CalendarPlus,
   Loader2,
 } from "lucide-react"
 import Link from "next/link"
-import { createEvent } from "@/app/actions/events"
+import { createEvent, editEvent, deleteEvent } from "@/app/actions/events"
 
 interface Event {
   id: number
@@ -106,12 +97,14 @@ function CreateEventDialog({ venues }: { venues: Venue[] }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger>
-        <Button size="sm" className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
-          New Event
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button size="sm" className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            New Event
+          </Button>
+        }
+      />
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Create New Event</DialogTitle>
@@ -238,6 +231,255 @@ function CreateEventDialog({ venues }: { venues: Venue[] }) {
   )
 }
 
+function EditEventDialog({ event, venues }: { event: Event; venues: Venue[] }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  // We need to know the current venue. For this demo, let's just allow re-selecting or we'd pass it in.
+  // Actually, event might not have venueId in the list view, but let's assume it doesn't matter for the UI form if it's blank.
+  const [venueId, setVenueId] = useState<string>("")
+  const [venueName, setVenueName] = useState<string>("")
+
+  function handleOpenChange(val: boolean) {
+    if (!isPending) {
+      setOpen(val)
+      if (!val) {
+        setError(null)
+      }
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    const formData = new FormData(e.currentTarget)
+    if (venueId) formData.set("venueId", venueId)
+
+    startTransition(async () => {
+      try {
+        await editEvent(event.id, formData)
+        setOpen(false)
+        router.refresh()
+      } catch (err) {
+        if (err instanceof Error) setError(err.message)
+      }
+    })
+  }
+
+  // Format date to YYYY-MM-DD for the input
+  const dateStr = new Date(event.eventDate).toISOString().split("T")[0]
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger
+        render={
+          <Button variant="ghost" size="icon-sm">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit Event</DialogTitle>
+          <DialogDescription>
+            Update details for this community event.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          {error && (
+            <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`ev-name-${event.id}`}>Event Name *</Label>
+            <Input
+              id={`ev-name-${event.id}`}
+              name="name"
+              defaultValue={event.name}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`ev-description-${event.id}`}>Description *</Label>
+            <Textarea
+              id={`ev-description-${event.id}`}
+              name="description"
+              defaultValue={event.description}
+              rows={3}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor={`ev-date-${event.id}`}>Date *</Label>
+              <Input
+                id={`ev-date-${event.id}`}
+                name="eventDate"
+                type="date"
+                defaultValue={dateStr}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`ev-time-${event.id}`}>Time *</Label>
+              <Input
+                id={`ev-time-${event.id}`}
+                name="eventTime"
+                type="time"
+                defaultValue={event.eventTime}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`ev-capacity-${event.id}`}>Capacity *</Label>
+            <Input
+              id={`ev-capacity-${event.id}`}
+              name="capacity"
+              type="number"
+              min="1"
+              defaultValue={event.capacity}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`ev-venue-${event.id}`}>
+              Venue{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <Select
+              value={venueId}
+              onValueChange={(val) => {
+                setVenueId(val ?? "")
+                const found = venues.find((v) => String(v.id) === val)
+                if (found)
+                  setVenueName(`${found.name} (cap. ${found.capacity})`)
+                else setVenueName("")
+              }}
+            >
+              <SelectTrigger id={`ev-venue-${event.id}`} className="w-full">
+                <SelectValue>
+                  {venueName || (
+                    <span className="text-muted-foreground">
+                      Select a venue...
+                    </span>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="w-full">
+                {venues.length === 0 ? (
+                  <SelectItem value="_none" disabled>
+                    No venues yet — add one first
+                  </SelectItem>
+                ) : (
+                  venues.map((v) => (
+                    <SelectItem key={v.id} value={String(v.id)}>
+                      {v.name} (cap. {v.capacity})
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending} className="gap-2">
+              {isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Pencil className="size-4" />
+              )}
+              {isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeleteEventDialog({ event }: { event: Event }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  function handleDelete() {
+    startTransition(async () => {
+      await deleteEvent(event.id)
+      setOpen(false)
+      router.refresh()
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete Event</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete <strong>{event.name}</strong>? This
+            action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isPending}
+            className="gap-2"
+          >
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Trash2 className="size-4" />
+            )}
+            {isPending ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function EventsTable({
   events,
   venues = [],
@@ -347,39 +589,8 @@ export function EventsTable({
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger>
-                              <Button variant="ghost" size="icon-sm">
-                                <MoreHorizontal className="h-3.5 w-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-32">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem>
-                                <Link
-                                  href={`/events/${event.id}`}
-                                  className="flex w-full items-center"
-                                >
-                                  <Eye className="mr-2 h-3.5 w-3.5" />
-                                  View
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Link
-                                  href={`/admin/events/${event.id}/edit`}
-                                  className="flex w-full items-center"
-                                >
-                                  <Pencil className="mr-2 h-3.5 w-3.5" />
-                                  Edit
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem variant="destructive">
-                                <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <EditEventDialog event={event} venues={venues} />
+                          <DeleteEventDialog event={event} />
                         </div>
                       </td>
                     </tr>

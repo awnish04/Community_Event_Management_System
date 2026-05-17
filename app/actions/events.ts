@@ -55,3 +55,69 @@ export async function deleteVenue(id: number) {
   await db.delete(venues).where(eq(venues.id, id))
   revalidatePath("/admin/venues")
 }
+
+export async function editVenue(id: number, formData: FormData) {
+  const name = formData.get("name") as string
+  const address = formData.get("address") as string
+  const capacity = parseInt(formData.get("capacity") as string, 10)
+  const description = (formData.get("description") as string) || null
+
+  if (!name || !address || !capacity) {
+    throw new Error("Name, address, and capacity are required.")
+  }
+
+  await db.update(venues).set({ name, address, capacity, description, updatedAt: new Date() }).where(eq(venues.id, id))
+
+  revalidatePath("/admin/venues")
+}
+
+export async function deleteEvent(id: number) {
+  await db.delete(events).where(eq(events.id, id))
+  revalidatePath("/admin/events")
+}
+
+export async function editEvent(id: number, formData: FormData) {
+  const name = formData.get("name") as string
+  const description = formData.get("description") as string
+  const eventDate = formData.get("eventDate") as string
+  const eventTime = formData.get("eventTime") as string
+  const capacity = parseInt(formData.get("capacity") as string, 10)
+  const venueIdRaw = formData.get("venueId") as string
+  const venueId = venueIdRaw && venueIdRaw !== "_none" ? parseInt(venueIdRaw, 10) : null
+
+  if (!name || !description || !eventDate || !eventTime || !capacity) {
+    throw new Error("All required fields must be filled.")
+  }
+
+  await db.update(events).set({
+    name,
+    description,
+    eventDate: new Date(eventDate),
+    eventTime,
+    capacity,
+    updatedAt: new Date()
+  }).where(eq(events.id, id))
+
+  if (venueId) {
+    // Check if venue already exists
+    const existing = await db.query.eventVenues.findFirst({
+      where: eq(eventVenues.eventId, id)
+    })
+    
+    if (existing) {
+      if (existing.venueId !== venueId) {
+        await db.update(eventVenues).set({ venueId }).where(eq(eventVenues.eventId, id))
+      }
+    } else {
+      await db.insert(eventVenues).values({
+        eventId: id,
+        venueId
+      })
+    }
+  } else {
+     // delete any existing venue links
+     await db.delete(eventVenues).where(eq(eventVenues.eventId, id))
+  }
+
+  revalidatePath("/admin/events")
+}

@@ -20,6 +20,15 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, MapPin, Users, Filter } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { RegisterForm } from "@/components/events/RegisterForm"
 
 interface UserEventsViewProps {
   initialEvents: any[]
@@ -96,10 +105,10 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
                 value={selectedVenue || ""}
                 onValueChange={(value) => setSelectedVenue(value)}
               >
-                <SelectTrigger id="venue">
+                <SelectTrigger id="venue" className="w-full">
                   <SelectValue placeholder="All venues" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-full">
                   <SelectItem value="_all">All venues</SelectItem>
                   {uniqueVenues.map((venue: any) => (
                     <SelectItem key={venue.id} value={String(venue.id)}>
@@ -116,10 +125,10 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
                 value={selectedActivityType || ""}
                 onValueChange={(value) => setSelectedActivityType(value)}
               >
-                <SelectTrigger id="activity">
+                <SelectTrigger id="activity" className="w-full">
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-full">
                   <SelectItem value="_all">All types</SelectItem>
                   {uniqueActivityTypes.map((type) => (
                     <SelectItem key={type as string} value={type as string}>
@@ -141,7 +150,10 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
             </div>
           </div>
 
-          {(searchTerm || selectedVenue || selectedActivityType || selectedDate) && (
+          {(searchTerm ||
+            selectedVenue ||
+            selectedActivityType ||
+            selectedDate) && (
             <Button
               variant="outline"
               onClick={() => {
@@ -160,7 +172,10 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredEvents.length > 0 ? (
           filteredEvents.map((event) => (
-            <Card key={event.id} className="flex flex-col shadow-sm transition-all hover:shadow-md">
+            <Card
+              key={event.id}
+              className="flex flex-col shadow-sm transition-all hover:shadow-md"
+            >
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
@@ -170,8 +185,16 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
                     </CardDescription>
                   </div>
                   {event.userRegistrationStatus && (
-                    <Badge variant={event.userRegistrationStatus === "confirmed" ? "default" : "secondary"}>
-                      {event.userRegistrationStatus === "confirmed" ? "Registered" : "Pending"}
+                    <Badge
+                      variant={
+                        event.userRegistrationStatus === "confirmed"
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {event.userRegistrationStatus === "confirmed"
+                        ? "Registered"
+                        : "Pending"}
                     </Badge>
                   )}
                 </div>
@@ -181,7 +204,8 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     <span>
-                      {new Date(event.eventDate).toLocaleDateString()} at {event.eventTime}
+                      {new Date(event.eventDate).toLocaleDateString()} at{" "}
+                      {event.eventTime}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -198,7 +222,11 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
 
                 <div className="flex flex-wrap gap-1">
                   {event.activities.map((activity: any) => (
-                    <Badge key={activity.id} variant="secondary" className="text-xs">
+                    <Badge
+                      key={activity.id}
+                      variant="secondary"
+                      className="text-xs"
+                    >
                       {activity.type}
                     </Badge>
                   ))}
@@ -206,18 +234,41 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
 
                 <div className="pt-2">
                   {!event.userRegistrationStatus ? (
-                    <Button
-                      className="w-full"
-                      disabled={event.isFull}
-                      onClick={() => window.location.href = `/events/${event.id}`}
-                    >
-                      {event.isFull ? "Event Full" : "Register Now"}
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger
+                        render={
+                          <Button
+                            className="w-full"
+                            disabled={event.isFull}
+                          >
+                            {event.isFull ? "Event Full" : "Register Now"}
+                          </Button>
+                        }
+                      />
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Register for {event.name}</DialogTitle>
+                          <DialogDescription>
+                            Secure your spot at this amazing event.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <RegisterForm
+                          eventId={Number(event.id)}
+                          availableSpots={event.capacity - event.currentRegistrations}
+                          capacity={event.capacity}
+                          currentRegistrations={event.currentRegistrations}
+                          occupancyPercentage={(event.currentRegistrations / event.capacity) * 100}
+                          isFull={event.isFull}
+                        />
+                      </DialogContent>
+                    </Dialog>
                   ) : (
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => window.location.href = `/user/registrations`}
+                      onClick={() =>
+                        (window.location.href = `/user/registrations`)
+                      }
                     >
                       Manage Registration
                     </Button>
@@ -228,18 +279,23 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
           ))
         ) : (
           <div className="col-span-full rounded-lg border border-dashed p-12 text-center">
-            <Calendar className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+            <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" />
             <h3 className="text-lg font-medium">
-              {initialEvents.length === 0 ? "No events available" : "No events match your filters"}
+              {initialEvents.length === 0
+                ? "No events available"
+                : "No events match your filters"}
             </h3>
-            <p className="text-muted-foreground mt-1">
-              {initialEvents.length === 0 
-                ? "Check back later for new community events." 
+            <p className="mt-1 text-muted-foreground">
+              {initialEvents.length === 0
+                ? "Check back later for new community events."
                 : "Try adjusting your search term or filters to find what you're looking for."}
             </p>
-            {(searchTerm || (selectedVenue && selectedVenue !== "_all") || (selectedActivityType && selectedActivityType !== "_all") || selectedDate) && (
-              <Button 
-                variant="link" 
+            {(searchTerm ||
+              (selectedVenue && selectedVenue !== "_all") ||
+              (selectedActivityType && selectedActivityType !== "_all") ||
+              selectedDate) && (
+              <Button
+                variant="link"
                 className="mt-2"
                 onClick={() => {
                   setSearchTerm("")
