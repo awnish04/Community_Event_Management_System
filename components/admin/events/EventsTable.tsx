@@ -73,14 +73,16 @@ function CreateEventDialog({ venues }: { venues: Venue[] }) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [venueId, setVenueId] = useState<string | null>(null)
+  const [venueId, setVenueId] = useState<string>("")
+  const [venueName, setVenueName] = useState<string>("")
 
   function handleOpenChange(val: boolean) {
     if (!isPending) {
       setOpen(val)
       if (!val) {
         setError(null)
-        setVenueId(null)
+        setVenueId("")
+        setVenueName("")
       }
     }
   }
@@ -177,11 +179,26 @@ function CreateEventDialog({ venues }: { venues: Venue[] }) {
                 (optional)
               </span>
             </Label>
-            <Select value={venueId} onValueChange={setVenueId}>
-              <SelectTrigger id="ev-venue">
-                <SelectValue placeholder="Select a venue..." />
+            <Select
+              value={venueId}
+              onValueChange={(val) => {
+                setVenueId(val ?? "")
+                const found = venues.find((v) => String(v.id) === val)
+                if (found)
+                  setVenueName(`${found.name} (cap. ${found.capacity})`)
+                else setVenueName("")
+              }}
+            >
+              <SelectTrigger id="ev-venue" className="w-full">
+                <SelectValue>
+                  {venueName || (
+                    <span className="text-muted-foreground">
+                      Select a venue...
+                    </span>
+                  )}
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 {venues.length === 0 ? (
                   <SelectItem value="_none" disabled>
                     No venues yet — add one first
@@ -260,7 +277,7 @@ export function EventsTable({
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">

@@ -198,57 +198,81 @@ export function VenuesTable({ venues }: { venues: Venue[] }) {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.length === 0 ? (
-            <p className="col-span-full py-8 text-center text-sm text-muted-foreground">
-              {venues.length === 0
-                ? 'No venues yet. Click "Add Venue" to create one.'
-                : "No venues match your search."}
-            </p>
-          ) : (
-            filtered.map((venue) => (
-              <div
-                key={venue.id}
-                className="group rounded-xl border bg-card p-4 shadow-xs ring-1 ring-foreground/5 transition-all hover:ring-[var(--sidebar-primary)]/30"
-              >
-                <div className="mb-3 flex items-start justify-between">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--sidebar-primary)]/10">
-                    <MapPin className="h-4 w-4 text-[var(--sidebar-primary)]" />
-                  </div>
-                  <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button variant="ghost" size="icon-sm">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-                <h3 className="mb-1 text-sm font-semibold">{venue.name}</h3>
-                <p className="mb-3 line-clamp-1 text-xs text-muted-foreground">
-                  {venue.address}
-                </p>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Users className="h-3.5 w-3.5" />
-                  <span>
-                    Capacity:{" "}
-                    <span className="font-medium text-foreground">
-                      {venue.capacity}
-                    </span>
-                  </span>
-                </div>
-                {venue.description && (
-                  <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-                    {venue.description}
-                  </p>
-                )}
-              </div>
-            ))
-          )}
+        <div className="overflow-x-auto border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Venue
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                  Address
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Capacity
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                  Description
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                  >
+                    {venues.length === 0
+                      ? 'No venues yet. Click "Add Venue" to create one.'
+                      : "No venues match your search."}
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((venue) => (
+                  <tr
+                    key={venue.id}
+                    className="transition-colors hover:bg-muted/30"
+                  >
+                    <td className="px-4 py-3 font-medium">{venue.name}</td>
+                    <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">
+                      {venue.address}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Users className="h-3.5 w-3.5" />
+                        <span className="font-medium text-foreground">
+                          {venue.capacity}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="hidden px-4 py-3 lg:table-cell">
+                      <p className="line-clamp-1 text-xs text-muted-foreground">
+                        {venue.description ?? "—"}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon-sm">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>

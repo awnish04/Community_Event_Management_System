@@ -135,21 +135,13 @@ function CreateActivityDialog() {
                 (optional)
               </span>
             </Label>
-            <Select
+            <Input
+              id="ac-type"
+              name="type"
+              placeholder="e.g. workshop, talk, networking..."
               value={type || ""}
-              onValueChange={(value) => setType(value)}
-            >
-              <SelectTrigger id="ac-type">
-                <SelectValue placeholder="Select a type..." />
-              </SelectTrigger>
-              <SelectContent>
-                {ACTIVITY_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(e) => setType(e.target.value)}
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -220,7 +212,7 @@ export function ActivitiesTable({ activities }: { activities: Activity[] }) {
           />
         </div>
 
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">

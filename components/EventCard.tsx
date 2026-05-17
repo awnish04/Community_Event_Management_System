@@ -1,16 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { Calendar, MapPin } from "lucide-react"
+import { MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { format } from "date-fns"
 
 interface EventCardProps {
@@ -32,44 +26,40 @@ export function EventCard({
   venue,
   activityType,
 }: EventCardProps) {
-  const formattedDate = format(new Date(eventDate), "EEE d MMM · h:mm a")
+  const formattedDate = format(new Date(eventDate), "EEE, d MMM · h:mm a")
 
   return (
-    <Link href={`/events/${id}`} className="block h-full">
-      <Card className="group h-full cursor-pointer transition-shadow hover:shadow-md hover:ring-primary/30">
-        <CardHeader>
+    <Card className="group flex flex-col overflow-hidden transition-shadow hover:shadow-md">
+      <CardContent className="flex flex-1 flex-col gap-4 pt-6">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm text-muted-foreground">{formattedDate}</span>
           {activityType && (
-            <Badge variant="secondary" className="w-fit">
+            <Badge
+              variant="secondary"
+              className="shrink-0 px-2.5 py-0.5 text-sm"
+            >
               {activityType}
             </Badge>
           )}
-          <CardTitle className="line-clamp-2 text-sm leading-snug font-medium group-hover:text-primary">
-            {name}
-          </CardTitle>
-        </CardHeader>
+        </div>
 
-        <CardContent className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5 shrink-0" />
-            <span>{formattedDate}</span>
-          </div>
+        <h4 className=" group-hover:text-primary">
+          {name}
+        </h4>
 
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{venue.name}</span>
-          </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <MapPin className="h-4 w-4 shrink-0" />
+          <span className="truncate font-medium">{venue.name}</span>
+        </div>
 
-          <CardDescription className="mt-1 line-clamp-2">
-            {description}
-          </CardDescription>
-        </CardContent>
+        <p>{description}</p>
+      </CardContent>
 
-        <CardFooter className="mt-auto">
-          <span className="text-xs font-medium text-primary transition-colors group-hover:text-primary/80">
-            Register →
-          </span>
-        </CardFooter>
-      </Card>
-    </Link>
+      <CardFooter className="px-6">
+        <Link href={`/events/${id}`} className="w-full">
+          <Button className="w-full">Register</Button>
+        </Link>
+      </CardFooter>
+    </Card>
   )
 }
