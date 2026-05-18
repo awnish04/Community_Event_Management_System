@@ -33,6 +33,11 @@ import {
   Loader2,
 } from "lucide-react"
 import { createVenue, editVenue, deleteVenue } from "@/app/actions/events"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface Venue {
   id: number
@@ -200,13 +205,20 @@ function EditVenueDialog({ venue }: { venue: Venue }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          <Button variant="ghost" size="icon-sm">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        }
-      />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button variant="ghost" size="icon-sm">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Edit Venue</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Venue</DialogTitle>
@@ -308,22 +320,30 @@ function DeleteVenueDialog({ venue }: { venue: Venue }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        }
-      />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Delete Venue</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete Venue</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>{venue.name}</strong>? This action cannot be undone.
+            Are you sure you want to delete <strong>{venue.name}</strong>? This
+            action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="pt-2">
@@ -386,7 +406,7 @@ export function VenuesTable({ venues }: { venues: Venue[] }) {
           />
         </div>
 
-        <div className="overflow-x-auto border">
+        <div className="overflow-x-auto rounded-2xl border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">

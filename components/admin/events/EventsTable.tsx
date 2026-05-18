@@ -42,6 +42,11 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { createEvent, editEvent, deleteEvent } from "@/app/actions/events"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface Event {
   id: number
@@ -59,13 +64,21 @@ interface Venue {
   capacity: number
 }
 
-function CreateEventDialog({ venues }: { venues: Venue[] }) {
+interface Activity {
+  id: number
+  name: string
+  type: string | null
+}
+
+function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities: Activity[] }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [venueId, setVenueId] = useState<string>("")
   const [venueName, setVenueName] = useState<string>("")
+  const [activityId, setActivityId] = useState<string>("")
+  const [activityName, setActivityName] = useState<string>("")
 
   function handleOpenChange(val: boolean) {
     if (!isPending) {
@@ -74,6 +87,8 @@ function CreateEventDialog({ venues }: { venues: Venue[] }) {
         setError(null)
         setVenueId("")
         setVenueName("")
+        setActivityId("")
+        setActivityName("")
       }
     }
   }
@@ -207,6 +222,48 @@ function CreateEventDialog({ venues }: { venues: Venue[] }) {
             </Select>
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="ev-activity-create">Activity</Label>
+            <Select
+              value={activityId}
+              onValueChange={(val) => {
+                setActivityId(val ?? "")
+                const found = activities.find((a) => String(a.id) === val)
+                if (found) setActivityName(found.name)
+                else setActivityName("")
+              }}
+            >
+              <SelectTrigger id="ev-activity-create" className="w-full">
+                <SelectValue>
+                  {activityName || (
+                    <span className="text-muted-foreground">
+                      Select an activity...
+                    </span>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="w-full">
+                <SelectItem value="">Select an activity...</SelectItem>
+                {activities.length === 0 ? (
+                  <SelectItem value="_none" disabled>
+                    No activities yet — add one first
+                  </SelectItem>
+                ) : (
+                  activities.map((act) => (
+                    <SelectItem key={act.id} value={String(act.id)}>
+                      {act.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+
+            {/* Hidden input to natively submit the single activityId */}
+            {activityId && (
+              <input type="hidden" name="activityIds" value={activityId} />
+            )}
+          </div>
+
           <DialogFooter className="pt-2">
             <Button
               type="button"
@@ -231,22 +288,30 @@ function CreateEventDialog({ venues }: { venues: Venue[] }) {
   )
 }
 
-function EditEventDialog({ event, venues }: { event: Event; venues: Venue[] }) {
+function EditEventDialog({ event, venues, activities }: { event: any; venues: Venue[]; activities: Activity[] }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  // We need to know the current venue. For this demo, let's just allow re-selecting or we'd pass it in.
-  // Actually, event might not have venueId in the list view, but let's assume it doesn't matter for the UI form if it's blank.
   const [venueId, setVenueId] = useState<string>("")
   const [venueName, setVenueName] = useState<string>("")
+  const [activityId, setActivityId] = useState<string>("")
+  const [activityName, setActivityName] = useState<string>("")
 
   function handleOpenChange(val: boolean) {
     if (!isPending) {
       setOpen(val)
       if (!val) {
         setError(null)
+      } else {
+        const currentVenueLink = (event as any).eventVenues?.[0]
+        setVenueId(currentVenueLink ? String(currentVenueLink.venueId) : "")
+        setVenueName(currentVenueLink?.venue ? `${currentVenueLink.venue.name} (cap. ${currentVenueLink.venue.capacity})` : "")
+        
+        const firstActivityLink = (event as any).eventActivities?.[0]
+        setActivityId(firstActivityLink ? String(firstActivityLink.activityId) : "")
+        setActivityName(firstActivityLink?.activity ? firstActivityLink.activity.name : "")
       }
     }
   }
@@ -273,13 +338,20 @@ function EditEventDialog({ event, venues }: { event: Event; venues: Venue[] }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          <Button variant="ghost" size="icon-sm">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        }
-      />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button variant="ghost" size="icon-sm">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Edit Event</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Event</DialogTitle>
@@ -393,6 +465,48 @@ function EditEventDialog({ event, venues }: { event: Event; venues: Venue[] }) {
             </Select>
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor={`ev-activity-${event.id}`}>Activity</Label>
+            <Select
+              value={activityId}
+              onValueChange={(val) => {
+                setActivityId(val ?? "")
+                const found = activities.find((a) => String(a.id) === val)
+                if (found) setActivityName(found.name)
+                else setActivityName("")
+              }}
+            >
+              <SelectTrigger id={`ev-activity-${event.id}`} className="w-full">
+                <SelectValue>
+                  {activityName || (
+                    <span className="text-muted-foreground">
+                      Select an activity...
+                    </span>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="w-full">
+                <SelectItem value="">Select an activity...</SelectItem>
+                {activities.length === 0 ? (
+                  <SelectItem value="_none" disabled>
+                    No activities yet — add one first
+                  </SelectItem>
+                ) : (
+                  activities.map((act) => (
+                    <SelectItem key={act.id} value={String(act.id)}>
+                      {act.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+
+            {/* Hidden input to natively submit the single activityId */}
+            {activityId && (
+              <input type="hidden" name="activityIds" value={activityId} />
+            )}
+          </div>
+
           <DialogFooter className="pt-2">
             <Button
               type="button"
@@ -432,17 +546,24 @@ function DeleteEventDialog({ event }: { event: Event }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        }
-      />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Delete Event</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete Event</DialogTitle>
@@ -483,9 +604,11 @@ function DeleteEventDialog({ event }: { event: Event }) {
 export function EventsTable({
   events,
   venues = [],
+  activities = [],
 }: {
-  events: Event[]
+  events: any[]
   venues?: Venue[]
+  activities?: Activity[]
 }) {
   const [search, setSearch] = useState("")
 
@@ -503,7 +626,7 @@ export function EventsTable({
           <CardDescription>{events.length} events total</CardDescription>
         </div>
         <CardAction>
-          <CreateEventDialog venues={venues} />
+          <CreateEventDialog venues={venues} activities={activities} />
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -519,7 +642,7 @@ export function EventsTable({
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto border">
+        <div className="overflow-x-auto border rounded-2xl">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
@@ -589,7 +712,7 @@ export function EventsTable({
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
-                          <EditEventDialog event={event} venues={venues} />
+                          <EditEventDialog event={event} venues={venues} activities={activities} />
                           <DeleteEventDialog event={event} />
                         </div>
                       </td>

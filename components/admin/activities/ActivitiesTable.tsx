@@ -37,6 +37,11 @@ import {
   editActivity,
   deleteActivity,
 } from "@/app/actions/activities"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface Activity {
   id: number
@@ -221,13 +226,20 @@ function EditActivityDialog({ activity }: { activity: Activity }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          <Button variant="ghost" size="icon-sm">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        }
-      />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button variant="ghost" size="icon-sm">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Edit Activity</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Activity</DialogTitle>
@@ -323,17 +335,24 @@ function DeleteActivityDialog({ activity }: { activity: Activity }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        }
-      />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Delete Activity</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete Activity</DialogTitle>
@@ -404,7 +423,7 @@ export function ActivitiesTable({ activities }: { activities: Activity[] }) {
           />
         </div>
 
-        <div className="overflow-x-auto border">
+        <div className="overflow-x-auto rounded-2xl border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">

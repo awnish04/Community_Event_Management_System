@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { db } from "@/db"
-import { events, eventVenues, venues } from "@/db/schema"
+import { events, eventVenues, venues, eventActivities } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
 export async function createEvent(formData: FormData) {
@@ -13,6 +13,9 @@ export async function createEvent(formData: FormData) {
   const capacity = parseInt(formData.get("capacity") as string, 10)
   const venueIdRaw = formData.get("venueId") as string
   const venueId = venueIdRaw ? parseInt(venueIdRaw, 10) : null
+
+  const activityIdsRaw = formData.getAll("activityIds") as string[]
+  const activityIds = activityIdsRaw.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id))
 
   if (!name || !description || !eventDate || !eventTime || !capacity) {
     throw new Error("All required fields must be filled.")
@@ -33,6 +36,17 @@ export async function createEvent(formData: FormData) {
     })
   }
 
+  if (activityIds.length > 0) {
+    await db.insert(eventActivities).values(
+      activityIds.map((activityId) => ({
+        eventId: newEvent.id,
+        activityId,
+      }))
+    )
+  }
+
+  revalidatePath("/")
+  revalidatePath("/events")
   revalidatePath("/admin/events")
 }
 
@@ -73,6 +87,8 @@ export async function editVenue(id: number, formData: FormData) {
 
 export async function deleteEvent(id: number) {
   await db.delete(events).where(eq(events.id, id))
+  revalidatePath("/")
+  revalidatePath("/events")
   revalidatePath("/admin/events")
 }
 
@@ -84,6 +100,9 @@ export async function editEvent(id: number, formData: FormData) {
   const capacity = parseInt(formData.get("capacity") as string, 10)
   const venueIdRaw = formData.get("venueId") as string
   const venueId = venueIdRaw && venueIdRaw !== "_none" ? parseInt(venueIdRaw, 10) : null
+
+  const activityIdsRaw = formData.getAll("activityIds") as string[]
+  const activityIds = activityIdsRaw.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id))
 
   if (!name || !description || !eventDate || !eventTime || !capacity) {
     throw new Error("All required fields must be filled.")
@@ -119,5 +138,18 @@ export async function editEvent(id: number, formData: FormData) {
      await db.delete(eventVenues).where(eq(eventVenues.eventId, id))
   }
 
+  // Update activities relation
+  await db.delete(eventActivities).where(eq(eventActivities.eventId, id))
+  if (activityIds.length > 0) {
+    await db.insert(eventActivities).values(
+      activityIds.map((activityId) => ({
+        eventId: id,
+        activityId,
+      }))
+    )
+  }
+
+  revalidatePath("/")
+  revalidatePath("/events")
   revalidatePath("/admin/events")
 }

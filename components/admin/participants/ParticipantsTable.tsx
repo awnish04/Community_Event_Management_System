@@ -8,13 +8,12 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardAction,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Search, Pencil, Trash2, ShieldCheck, Loader2 } from "lucide-react"
+import { Search, Trash2, Loader2, Check, X } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -25,121 +24,32 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { editUserRole, deleteUser } from "@/app/actions/users"
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { approveRegistration, rejectRegistration, deleteRegistration } from "@/app/actions/registrations"
 
-interface User {
+import { cn } from "@/lib/utils"
+
+interface Registration {
   id: number
-  name: string
-  email: string
-  phone: string | null
-  role: "admin" | "user"
-  createdAt: Date
+  status: string
+  registrationDate: Date
+  userName: string
+  userEmail: string
+  userPhone: string | null
+  eventName: string
 }
 
-function EditUserDialog({ user }: { user: User }) {
-  const router = useRouter()
-  const [open, setOpen] = useState(false)
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-  const [role, setRole] = useState<"admin" | "user">(user.role)
-
-  function handleOpenChange(val: boolean) {
-    if (!isPending) {
-      setOpen(val)
-      if (!val) {
-        setError(null)
-        setRole(user.role)
-      }
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-
-    startTransition(async () => {
-      try {
-        await editUserRole(user.id, role)
-        setOpen(false)
-        router.refresh()
-      } catch (err) {
-        if (err instanceof Error) setError(err.message)
-      }
-    })
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          <Button variant="ghost" size="icon-sm">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        }
-      />
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit User Role</DialogTitle>
-          <DialogDescription>
-            Update role for <strong>{user.name}</strong>.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          {error && (
-            <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <Label htmlFor={`role-${user.id}`}>Role *</Label>
-            <Select value={role} onValueChange={(val) => { if (val) setRole(val as "admin" | "user") }}>
-              <SelectTrigger id={`role-${user.id}`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="user">User</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <DialogFooter className="pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isPending} className="gap-2">
-              {isPending ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
-              {isPending ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function DeleteUserDialog({ user }: { user: User }) {
+function DeleteRegistrationDialog({ reg }: { reg: Registration }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function handleDelete() {
     startTransition(async () => {
-      await deleteUser(user.id)
+      await deleteRegistration(reg.id)
       setOpen(false)
       router.refresh()
     })
@@ -147,22 +57,29 @@ function DeleteUserDialog({ user }: { user: User }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        }
-      />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Delete Participant</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Delete User</DialogTitle>
+          <DialogTitle>Delete Participant Registration</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>{user.name}</strong>? This action cannot be undone.
+            Are you sure you want to delete the registration of <strong>{reg.userName}</strong> for the event <strong>{reg.eventName}</strong>? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="pt-2">
@@ -194,49 +111,82 @@ function DeleteUserDialog({ user }: { user: User }) {
   )
 }
 
-export function ParticipantsTable({ users }: { users: User[] }) {
+export function ParticipantsTable({ registrations }: { registrations: Registration[] }) {
+  const router = useRouter()
   const [search, setSearch] = useState("")
+  const [isPending, startTransition] = useTransition()
+  const [activeRegId, setActiveRegId] = useState<number | null>(null)
 
-  const filtered = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
+  const filtered = registrations.filter(
+    (r) =>
+      r.userName.toLowerCase().includes(search.toLowerCase()) ||
+      r.userEmail.toLowerCase().includes(search.toLowerCase()) ||
+      r.eventName.toLowerCase().includes(search.toLowerCase())
   )
+
+  function handleApprove(id: number) {
+    setActiveRegId(id)
+    startTransition(async () => {
+      try {
+        await approveRegistration(id)
+        router.refresh()
+      } finally {
+        setActiveRegId(null)
+      }
+    })
+  }
+
+  function handleReject(id: number) {
+    setActiveRegId(id)
+    startTransition(async () => {
+      try {
+        await rejectRegistration(id)
+        router.refresh()
+      } finally {
+        setActiveRegId(null)
+      }
+    })
+  }
 
   return (
     <Card>
       <CardHeader>
         <div>
           <CardTitle>Participants</CardTitle>
-          <CardDescription>{users.length} registered users</CardDescription>
+          <CardDescription>
+            {registrations.length} registrations total
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent>
         <div className="relative mb-4">
           <Search className="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search participants..."
+            placeholder="Search by participant name, email or event..."
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        <div className="overflow-x-auto border">
+        <div className="overflow-x-auto rounded-2xl border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                   User
                 </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Event
+                </th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
                   Phone
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                  Role
+                  Status
                 </th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                  Joined
+                  Registered
                 </th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">
                   Actions
@@ -247,23 +197,26 @@ export function ParticipantsTable({ users }: { users: User[] }) {
               {filtered.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
                     No participants found
                   </td>
                 </tr>
               ) : (
-                filtered.map((user) => {
-                  const initials = user.name
+                filtered.map((reg) => {
+                  const initials = reg.userName
                     .split(" ")
                     .map((n) => n[0])
                     .join("")
                     .toUpperCase()
                     .slice(0, 2)
+
+                  const isRegPending = isPending && activeRegId === reg.id
+
                   return (
                     <tr
-                      key={user.id}
+                      key={reg.id}
                       className="transition-colors hover:bg-muted/30"
                     >
                       <td className="px-4 py-3">
@@ -274,40 +227,99 @@ export function ParticipantsTable({ users }: { users: User[] }) {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium">{user.name}</p>
+                            <p className="font-medium">{reg.userName}</p>
                             <p className="text-xs text-muted-foreground">
-                              {user.email}
+                              {reg.userEmail}
                             </p>
                           </div>
                         </div>
                       </td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-foreground">
+                          {reg.eventName}
+                        </p>
+                      </td>
                       <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
-                        {user.phone ?? "—"}
+                        {reg.userPhone ?? "—"}
                       </td>
                       <td className="px-4 py-3">
                         <Badge
-                          variant={
-                            user.role === "admin" ? "default" : "secondary"
-                          }
-                          className="gap-1"
-                        >
-                          {user.role === "admin" && (
-                            <ShieldCheck className="h-3 w-3" />
+                          variant="outline"
+                          className={cn(
+                            "capitalize font-semibold px-2.5 py-0.5 rounded-full border shadow-none",
+                            reg.status === "confirmed"
+                              ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/50"
+                              : reg.status === "cancelled"
+                                ? "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/50"
+                                : "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/50"
                           )}
-                          {user.role}
+                        >
+                          {reg.status === "confirmed"
+                            ? "Approved"
+                            : reg.status === "cancelled"
+                              ? "Rejected"
+                              : reg.status}
                         </Badge>
                       </td>
                       <td className="hidden px-4 py-3 text-xs text-muted-foreground lg:table-cell">
-                        {new Date(user.createdAt).toLocaleDateString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
+                        {new Date(reg.registrationDate).toLocaleDateString(
+                          "en-GB",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          }
+                        )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <EditUserDialog user={user} />
-                          <DeleteUserDialog user={user} />
+                        <div className="flex items-center justify-end gap-1.5">
+                          {isRegPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          ) : (
+                            <>
+                              {reg.status !== "confirmed" && (
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/20"
+                                        onClick={() => handleApprove(reg.id)}
+                                        disabled={isPending}
+                                      >
+                                        <Check className="h-4 w-4" />
+                                      </Button>
+                                    }
+                                  />
+                                  <TooltipContent>
+                                    Approve Participant
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {reg.status !== "cancelled" && (
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className="text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/20"
+                                        onClick={() => handleReject(reg.id)}
+                                        disabled={isPending}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    }
+                                  />
+                                  <TooltipContent>
+                                    Reject Participant
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              <DeleteRegistrationDialog reg={reg} />
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

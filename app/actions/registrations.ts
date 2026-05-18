@@ -89,3 +89,27 @@ export async function registerForEvent(
     return { success: false, error: "Something went wrong. Please try again." }
   }
 }
+
+export async function approveRegistration(id: number) {
+  await db
+    .update(registrations)
+    .set({ status: "confirmed", updatedAt: new Date() })
+    .where(eq(registrations.id, id))
+  revalidatePath("/admin/participants")
+  revalidatePath("/user/registrations")
+}
+
+export async function rejectRegistration(id: number) {
+  await db
+    .update(registrations)
+    .set({ status: "cancelled", updatedAt: new Date() })
+    .where(eq(registrations.id, id))
+  revalidatePath("/admin/participants")
+  revalidatePath("/user/registrations")
+}
+
+export async function deleteRegistration(id: number) {
+  await db.delete(registrations).where(eq(registrations.id, id))
+  revalidatePath("/admin/participants")
+  revalidatePath("/user/registrations")
+}

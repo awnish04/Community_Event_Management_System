@@ -12,10 +12,7 @@ import { useTheme } from "next-themes"
 import { useAuth } from "@/lib/context/AuthContext"
 import { UserMenu } from "@/components/user-menu"
 
-const NAV_LINKS = [
-  { label: "Events", href: "/events" },
-  { label: "About", href: "/about" },
-]
+const NAV_LINKS: { label: string; href: string }[] = []
 
 function MenuToggle({ open, onClick }: { open: boolean; onClick: () => void }) {
   return (
@@ -120,11 +117,11 @@ export function Navigation() {
           <div className="flex items-center justify-start">
             <Link
               href="/"
-              aria-label="EventHub home"
+              aria-label="eventspark home"
               className="flex shrink-0 items-center space-x-2"
             >
               <Calendar className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">EventHub</span>
+              <span className="text-xl font-bold">eventspark</span>
             </Link>
           </div>
 
@@ -149,7 +146,7 @@ export function Navigation() {
                     <motion.span
                       layoutId="nav-pill"
                       className={cn(
-                        "absolute inset-0",
+                        "absolute inset-0 rounded-4xl",
                         isActive ? "bg-primary/10" : "bg-muted"
                       )}
                       transition={{
@@ -182,7 +179,7 @@ export function Navigation() {
             <div className="hidden items-center gap-3 md:flex">
               <AnimatedThemeToggler
                 variant="circle"
-                className="flex items-center justify-center border border-border bg-muted p-2 text-foreground transition-colors hover:bg-muted/80 [&_svg]:size-4"
+                className="flex items-center justify-center rounded-full border border-border bg-muted p-2 text-foreground transition-colors hover:bg-muted/80 [&_svg]:size-4"
               />
               <div className="flex items-center gap-2">
                 {isAuthenticated ? (
@@ -341,7 +338,7 @@ export function Navigation() {
               >
                 <div className="flex items-center space-x-2 opacity-20 grayscale select-none">
                   <Calendar className="h-6 w-6" />
-                  <span className="text-xl font-bold">EventHub</span>
+                  <span className="text-xl font-bold">eventspark</span>
                 </div>
               </motion.div>
             </motion.div>

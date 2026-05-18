@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, MapPin, Users, Filter } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -37,9 +38,12 @@ interface UserEventsViewProps {
 export function UserEventsView({ initialEvents }: UserEventsViewProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedVenue, setSelectedVenue] = useState<string | null>("")
-  const [selectedActivityType, setSelectedActivityType] = useState<string | null>("")
+  const [selectedActivityType, setSelectedActivityType] = useState<
+    string | null
+  >("")
   const [selectedDate, setSelectedDate] = useState<string>("")
   const [filteredEvents, setFilteredEvents] = useState<any[]>(initialEvents)
+  const [openDialogId, setOpenDialogId] = useState<number | null>(null)
 
   // Filter events based on search and filters
   useEffect(() => {
@@ -53,13 +57,25 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
       )
     }
 
-    if (selectedVenue && selectedVenue !== "_all") {
-      filtered = filtered.filter((event) => String(event.venue.id) === selectedVenue)
+    if (
+      selectedVenue &&
+      selectedVenue !== "all-venues" &&
+      selectedVenue !== "_all"
+    ) {
+      filtered = filtered.filter(
+        (event) => event.venue.name === selectedVenue
+      )
     }
 
-    if (selectedActivityType && selectedActivityType !== "_all") {
+    if (
+      selectedActivityType &&
+      selectedActivityType !== "all-activities" &&
+      selectedActivityType !== "_all"
+    ) {
       filtered = filtered.filter((event) =>
-        event.activities.some((activity: any) => activity.type === selectedActivityType)
+        event.activities.some(
+          (activity: any) => activity.name === selectedActivityType
+        )
       )
     }
 
@@ -68,23 +84,57 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
     }
 
     setFilteredEvents(filtered)
-  }, [searchTerm, selectedVenue, selectedActivityType, selectedDate, initialEvents])
+  }, [
+    searchTerm,
+    selectedVenue,
+    selectedActivityType,
+    selectedDate,
+    initialEvents,
+  ])
 
   const uniqueVenues = Array.from(
     new Map(initialEvents.map((e) => [e.venue.id, e.venue])).values()
   )
 
-  const uniqueActivityTypes = Array.from(
-    new Set(initialEvents.flatMap((e) => e.activities.map((a: any) => a.type)))
+  const uniqueActivityNames = Array.from(
+    new Set(
+      initialEvents
+        .flatMap((e) => e.activities?.map((a: any) => a.name) || [])
+        .filter((name): name is string => typeof name === "string" && name.trim() !== "")
+    )
   )
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filter Events
+          <CardTitle className="flex items-center justify-between gap-2">
+            <div className="flex">
+              <Filter className="h-5 w-5" />
+              Filter Events
+            </div>
+            <div>
+              {(searchTerm ||
+                (selectedVenue &&
+                  selectedVenue !== "all-venues" &&
+                  selectedVenue !== "_all") ||
+                (selectedActivityType &&
+                  selectedActivityType !== "all-activities" &&
+                  selectedActivityType !== "_all") ||
+                selectedDate) && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("")
+                    setSelectedVenue("")
+                    setSelectedActivityType("")
+                    setSelectedDate("")
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -101,17 +151,20 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
 
             <div className="space-y-2">
               <Label htmlFor="venue">Venue</Label>
+
               <Select
                 value={selectedVenue || ""}
                 onValueChange={(value) => setSelectedVenue(value)}
               >
                 <SelectTrigger id="venue" className="w-full">
-                  <SelectValue placeholder="All venues" />
+                  <SelectValue placeholder="All Venues" />
                 </SelectTrigger>
-                <SelectContent className="w-full">
-                  <SelectItem value="_all">All venues</SelectItem>
+
+                <SelectContent>
+                  <SelectItem value="">All Venues</SelectItem>
+
                   {uniqueVenues.map((venue: any) => (
-                    <SelectItem key={venue.id} value={String(venue.id)}>
+                    <SelectItem key={venue.id} value={venue.name}>
                       {venue.name}
                     </SelectItem>
                   ))}
@@ -120,19 +173,22 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="activity">Activity Type</Label>
+              <Label htmlFor="activity">Activity</Label>
+
               <Select
                 value={selectedActivityType || ""}
                 onValueChange={(value) => setSelectedActivityType(value)}
               >
                 <SelectTrigger id="activity" className="w-full">
-                  <SelectValue placeholder="All types" />
+                  <SelectValue placeholder="All Activities" />
                 </SelectTrigger>
-                <SelectContent className="w-full">
-                  <SelectItem value="_all">All types</SelectItem>
-                  {uniqueActivityTypes.map((type) => (
-                    <SelectItem key={type as string} value={type as string}>
-                      {type as string}
+
+                <SelectContent>
+                  <SelectItem value="">All Activities</SelectItem>
+
+                  {uniqueActivityNames.map((name: string) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -149,23 +205,6 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
               />
             </div>
           </div>
-
-          {(searchTerm ||
-            selectedVenue ||
-            selectedActivityType ||
-            selectedDate) && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchTerm("")
-                setSelectedVenue("")
-                setSelectedActivityType("")
-                setSelectedDate("")
-              }}
-            >
-              Clear Filters
-            </Button>
-          )}
         </CardContent>
       </Card>
 
@@ -186,15 +225,21 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
                   </div>
                   {event.userRegistrationStatus && (
                     <Badge
-                      variant={
+                      variant="outline"
+                      className={cn(
+                        "shrink-0 capitalize font-semibold px-2.5 py-0.5 rounded-full border shadow-none",
                         event.userRegistrationStatus === "confirmed"
-                          ? "default"
-                          : "secondary"
-                      }
+                          ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/50"
+                          : event.userRegistrationStatus === "cancelled"
+                            ? "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/50"
+                            : "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/50"
+                      )}
                     >
                       {event.userRegistrationStatus === "confirmed"
                         ? "Registered"
-                        : "Pending"}
+                        : event.userRegistrationStatus === "cancelled"
+                          ? "Cancelled"
+                          : "Pending"}
                     </Badge>
                   )}
                 </div>
@@ -220,27 +265,30 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {event.activities.map((activity: any) => (
                     <Badge
                       key={activity.id}
                       variant="secondary"
                       className="text-xs"
                     >
-                      {activity.type}
+                      {activity.name}
+                      {activity.type ? ` (${activity.type})` : ""}
                     </Badge>
                   ))}
                 </div>
 
                 <div className="pt-2">
                   {!event.userRegistrationStatus ? (
-                    <Dialog>
+                    <Dialog
+                      open={openDialogId === Number(event.id)}
+                      onOpenChange={(open) =>
+                        setOpenDialogId(open ? Number(event.id) : null)
+                      }
+                    >
                       <DialogTrigger
                         render={
-                          <Button
-                            className="w-full"
-                            disabled={event.isFull}
-                          >
+                          <Button className="w-full" disabled={event.isFull}>
                             {event.isFull ? "Event Full" : "Register Now"}
                           </Button>
                         }
@@ -254,11 +302,16 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
                         </DialogHeader>
                         <RegisterForm
                           eventId={Number(event.id)}
-                          availableSpots={event.capacity - event.currentRegistrations}
+                          availableSpots={
+                            event.capacity - event.currentRegistrations
+                          }
                           capacity={event.capacity}
                           currentRegistrations={event.currentRegistrations}
-                          occupancyPercentage={(event.currentRegistrations / event.capacity) * 100}
+                          occupancyPercentage={
+                            (event.currentRegistrations / event.capacity) * 100
+                          }
                           isFull={event.isFull}
+                          onSuccess={() => setOpenDialogId(null)}
                         />
                       </DialogContent>
                     </Dialog>

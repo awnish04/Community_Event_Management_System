@@ -1,16 +1,37 @@
 import { ParticipantsTable } from "@/components/admin/participants/ParticipantsTable"
 import { db } from "@/db"
-import { users } from "@/db/schema"
+import { registrations } from "@/db/schema"
 import { desc } from "drizzle-orm"
 
 export default async function AdminParticipantsPage() {
-  let allUsers: (typeof users.$inferSelect)[] = []
+  let allRegistrations: any[] = []
 
   try {
-    allUsers = await db.select().from(users).orderBy(desc(users.createdAt))
-  } catch {
-    allUsers = []
+    const regs = await db.query.registrations.findMany({
+      orderBy: [desc(registrations.registrationDate)],
+      with: {
+        event: true,
+        participant: {
+          with: {
+            user: true,
+          },
+        },
+      },
+    })
+
+    allRegistrations = regs.map((r) => ({
+      id: r.id,
+      status: r.status,
+      registrationDate: r.registrationDate,
+      userName: r.participant?.user?.name || "Anonymous",
+      userEmail: r.participant?.user?.email || "No email",
+      userPhone: r.participant?.user?.phone || null,
+      eventName: r.event?.name || "TBA",
+    }))
+  } catch (err) {
+    console.error("Error loading admin participants page:", err)
+    allRegistrations = []
   }
 
-  return <ParticipantsTable users={allUsers} />
+  return <ParticipantsTable registrations={allRegistrations} />
 }
