@@ -1,3 +1,5 @@
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { DashboardCards } from "@/components/admin/dashboard/DashboardCards"
 import { db } from "@/db"
 import { events, users, venues, activities, registrations } from "@/db/schema"
@@ -5,6 +7,14 @@ import { events, users, venues, activities, registrations } from "@/db/schema"
 export const dynamic = "force-dynamic"
 
 export default async function AdminDashboardPage() {
+  // Check authentication
+  const cookieStore = await cookies()
+  const adminRole = cookieStore.get("adminRole")?.value
+
+  if (adminRole !== "ADMIN") {
+    redirect("/auth/admin-login")
+  }
+
   let totalEvents = 0
   let upcomingEvents = 0
   let totalUsers = 0

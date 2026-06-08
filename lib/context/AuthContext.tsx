@@ -34,9 +34,11 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 function setCookie(name: string, value: string, days = 1) {
+  const isProduction = window.location.protocol === "https:"
+  const secure = isProduction ? "; Secure" : ""
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${
     days * 86400
-  }; SameSite=Lax`
+  }; SameSite=Lax${secure}`
 }
 
 function clearCookie(name: string) {

@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { EventsTable } from "@/components/admin/events/EventsTable"
 import { db } from "@/db"
 import { events, venues, activities } from "@/db/schema"
@@ -7,6 +9,14 @@ import { desc } from "drizzle-orm"
 export const dynamic = "force-dynamic"
 
 export default async function AdminEventsPage() {
+  // Check authentication
+  const cookieStore = await cookies()
+  const adminRole = cookieStore.get("adminRole")?.value
+
+  if (adminRole !== "ADMIN") {
+    redirect("/auth/admin-login")
+  }
+
   let allEvents: any[] = []
   let allVenues: { id: number; name: string; capacity: number }[] = []
   let allActivities: { id: number; name: string; type: string | null }[] = []

@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { ParticipantsTable } from "@/components/admin/participants/ParticipantsTable"
 import { db } from "@/db"
 import { registrations } from "@/db/schema"
@@ -7,6 +9,14 @@ import { desc } from "drizzle-orm"
 export const dynamic = "force-dynamic"
 
 export default async function AdminParticipantsPage() {
+  // Check authentication
+  const cookieStore = await cookies()
+  const adminRole = cookieStore.get("adminRole")?.value
+
+  if (adminRole !== "ADMIN") {
+    redirect("/auth/admin-login")
+  }
+
   let allRegistrations: any[] = []
 
   try {
