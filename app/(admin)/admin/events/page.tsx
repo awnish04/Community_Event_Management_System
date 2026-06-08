@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventsTable } from "@/components/admin/events/EventsTable"
 import { db } from "@/db"
 import { events, venues, activities } from "@/db/schema"
 import { desc } from "drizzle-orm"
+
+export const dynamic = "force-dynamic"
 
 export default async function AdminEventsPage() {
   let allEvents: any[] = []
@@ -29,7 +32,11 @@ export default async function AdminEventsPage() {
         .select({ id: venues.id, name: venues.name, capacity: venues.capacity })
         .from(venues),
       db
-        .select({ id: activities.id, name: activities.name, type: activities.type })
+        .select({
+          id: activities.id,
+          name: activities.name,
+          type: activities.type,
+        })
         .from(activities),
     ])
 

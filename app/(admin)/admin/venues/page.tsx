@@ -3,6 +3,8 @@ import { db } from "@/db"
 import { venues } from "@/db/schema"
 import { desc } from "drizzle-orm"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminVenuesPage() {
   let allVenues: (typeof venues.$inferSelect)[] = []
 

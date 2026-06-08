@@ -3,6 +3,8 @@ import { db } from "@/db"
 import { activities } from "@/db/schema"
 import { desc } from "drizzle-orm"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminActivitiesPage() {
   let allActivities: (typeof activities.$inferSelect)[] = []
 

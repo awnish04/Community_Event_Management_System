@@ -1,0 +1,416 @@
+"use client"
+
+import { useState, useTransition, useRef } from "react"
+import { useRouter } from "next/navigation"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Search, Trash2, Loader2, Eye, Ticket, Download } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { deleteRegistration } from "@/app/actions/registrations"
+import { SimpleTicket } from "@/components/ui/simple-ticket"
+
+interface Registration {
+  id: string
+  eventName: string
+  attendeeName?: string
+  attendeeEmail?: string
+  registrationDate: string
+  ticketId?: string
+  qrCode?: string
+  event: {
+    eventDate: string
+    eventTime: string
+    venue: {
+      name: string
+    }
+  }
+}
+
+// ─── Download ticket functions (using dom-to-image-more) ─────────────────────
+async function downloadTicketAsPng(ticketEl: HTMLElement, filename: string) {
+  const domtoimage = (await import("dom-to-image-more")).default
+  const blob = await domtoimage.toBlob(ticketEl, { scale: 2 })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+async function downloadTicketAsJpeg(ticketEl: HTMLElement, filename: string) {
+  const domtoimage = (await import("dom-to-image-more")).default
+  const dataUrl = await domtoimage.toJpeg(ticketEl, {
+    scale: 2,
+    bgcolor: "#ffffff",
+    quality: 0.95,
+  })
+  const link = document.createElement("a")
+  link.href = dataUrl
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+async function downloadTicketAsPdf(ticketEl: HTMLElement, filename: string) {
+  const domtoimage = (await import("dom-to-image-more")).default
+  const { jsPDF } = await import("jspdf")
+
+  const dataUrl = await domtoimage.toPng(ticketEl, { scale: 2 })
+  const img = new Image()
+  img.src = dataUrl
+  await new Promise<void>((res) => {
+    img.onload = () => res()
+  })
+
+  const w = img.naturalWidth / 2
+  const h = img.naturalHeight / 2
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "px",
+    format: [w, h],
+  })
+  pdf.addImage(dataUrl, "PNG", 0, 0, w, h)
+  pdf.save(filename)
+}
+
+// ─── View / Download Ticket Dialog ───────────────────────────────────────────
+function ViewTicketDialog({ reg }: { reg: Registration }) {
+  const [open, setOpen] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const ticketRef = useRef<HTMLDivElement>(null)
+
+  const handleDownload = useCallback(
+    async (format: "png" | "jpeg" | "pdf") => {
+      if (!ticketRef.current) return
+      setDownloading(true)
+      try {
+        const base = `ticket-${reg.ticketId ?? reg.id}`
+        if (format === "png")
+          await downloadTicketAsPng(ticketRef.current, `${base}.png`)
+        else if (format === "jpeg")
+          await downloadTicketAsJpeg(ticketRef.current, `${base}.jpg`)
+        else await downloadTicketAsPdf(ticketRef.current, `${base}.pdf`)
+      } catch (e) {
+        console.error("Download failed:", e)
+      } finally {
+        setDownloading(false)
+      }
+    },
+    [reg.ticketId, reg.id]
+  )
+
+  if (!reg.ticketId) return null
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/20"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>View Ticket</TooltipContent>
+      </Tooltip>
+
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader />
+        <div
+          className="flex justify-center py-4"
+          style={{ backgroundColor: "transparent" }}
+        >
+          <EventTicket
+            ref={ticketRef}
+            ticketId={reg.ticketId}
+            eventName={reg.eventName}
+            eventDate={reg.event.eventDate}
+            eventTime={reg.event.eventTime}
+            venueName={reg.event.venue.name}
+            attendeeName={reg.attendeeName ?? "Guest"}
+            attendeeEmail={reg.attendeeEmail ?? ""}
+            qrCode={reg.qrCode}
+            status="CONFIRMED"
+          />
+        </div>
+        <DialogFooter className="gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
+                  disabled={downloading}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {downloading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {downloading ? "Downloading…" : "Download Ticket"}
+                </button>
+              }
+            />
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleDownload("png")}>
+                Download as PNG
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDownload("jpeg")}>
+                Download as JPEG
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDownload("pdf")}>
+                Download as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Cancel Registration Dialog ───────────────────────────────────────────────
+function CancelRegistrationDialog({ reg }: { reg: Registration }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  function handleCancel() {
+    startTransition(async () => {
+      await deleteRegistration(parseInt(reg.id, 10))
+      setOpen(false)
+      router.refresh()
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Cancel Registration</TooltipContent>
+      </Tooltip>
+
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Cancel Registration</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to cancel your registration for{" "}
+            <strong>{reg.eventName}</strong>? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={isPending}
+          >
+            Keep Registration
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleCancel}
+            disabled={isPending}
+            className="gap-2"
+          >
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Trash2 className="size-4" />
+            )}
+            {isPending ? "Cancelling…" : "Cancel Registration"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Main Table ───────────────────────────────────────────────────────────────
+export function RegistrationsTable({
+  registrations,
+}: {
+  registrations: Registration[]
+}) {
+  const [search, setSearch] = useState("")
+
+  const filtered = registrations.filter(
+    (r) =>
+      r.eventName.toLowerCase().includes(search.toLowerCase()) ||
+      (r.ticketId && r.ticketId.toLowerCase().includes(search.toLowerCase())) ||
+      r.event.venue.name.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <Card>
+      <CardHeader>
+        <div>
+          <CardTitle>My Registrations</CardTitle>
+          <CardDescription>
+            {registrations.length} event
+            {registrations.length !== 1 ? "s" : ""} registered
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="relative mb-4">
+          <Search className="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by event, ticket ID, or venue…"
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="overflow-x-auto rounded-2xl border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Event
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                  Venue
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                  Event Date
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                  Ticket ID
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                  Registered
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                  >
+                    No registrations found
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((reg) => (
+                  <tr
+                    key={reg.id}
+                    className="transition-colors hover:bg-muted/30"
+                  >
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className="font-medium">{reg.eventName}</p>
+                        <p className="text-xs text-muted-foreground md:hidden">
+                          {reg.event.venue.name}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+                      {reg.event.venue.name}
+                    </td>
+                    <td className="hidden px-4 py-3 text-sm text-muted-foreground lg:table-cell">
+                      {new Date(reg.event.eventDate).toLocaleDateString(
+                        "en-US",
+                        {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                        }
+                      )}{" "}
+                      • {reg.event.eventTime}
+                    </td>
+                    <td className="hidden px-4 py-3 lg:table-cell">
+                      {reg.ticketId ? (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-200/60 bg-emerald-50 font-mono text-xs text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/20 dark:text-emerald-400"
+                        >
+                          <Ticket className="mr-1 h-3 w-3" />
+                          {reg.ticketId}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          No ticket
+                        </span>
+                      )}
+                    </td>
+                    <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">
+                      {new Date(reg.registrationDate).toLocaleDateString(
+                        "en-GB",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        }
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {reg.ticketId && <ViewTicketDialog reg={reg} />}
+                        <CancelRegistrationDialog reg={reg} />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

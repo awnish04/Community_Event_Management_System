@@ -15,7 +15,6 @@ interface Props {
   availableSpots: number
   capacity: number
   currentRegistrations: number
-  occupancyPercentage: number
   isFull: boolean
   onSuccess?: () => void
 }
@@ -25,7 +24,6 @@ export function RegisterForm({
   availableSpots,
   capacity,
   currentRegistrations,
-  occupancyPercentage,
   isFull,
   onSuccess,
 }: Props) {
@@ -73,21 +71,9 @@ export function RegisterForm({
           <span className="text-muted-foreground">Total Capacity</span>
           <span className="font-medium">{capacity}</span>
         </div>
-      </div>
-
-      <Separator />
-
-      {/* Capacity bar */}
-      <div>
-        <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-          <span>{currentRegistrations} registered</span>
-          <span>{occupancyPercentage.toFixed(0)}%</span>
-        </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${Math.min(occupancyPercentage, 100)}%` }}
-          />
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">Registered</span>
+          <span className="font-medium">{currentRegistrations}</span>
         </div>
       </div>
 
@@ -95,7 +81,7 @@ export function RegisterForm({
 
       {/* Success state */}
       {result?.success && (
-        <div className="flex items-start gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+        <div className="flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
           <p>{result.message}</p>
         </div>
@@ -103,7 +89,7 @@ export function RegisterForm({
 
       {/* Error state */}
       {result && !result.success && (
-        <div className="flex items-start gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+        <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>{result.error}</p>
         </div>
@@ -113,7 +99,11 @@ export function RegisterForm({
       {!isFull && !result?.success && (
         <>
           {!showForm ? (
-            <Button className="w-full" size="lg" onClick={() => setShowForm(true)}>
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => setShowForm(true)}
+            >
               Register Now
             </Button>
           ) : (
@@ -141,7 +131,7 @@ export function RegisterForm({
               <div className="space-y-1.5">
                 <Label htmlFor="reg-phone">
                   Phone{" "}
-                  <span className="text-muted-foreground font-normal text-xs">
+                  <span className="text-xs font-normal text-muted-foreground">
                     (optional)
                   </span>
                 </Label>
@@ -165,7 +155,11 @@ export function RegisterForm({
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 gap-2" disabled={isPending}>
+                <Button
+                  type="submit"
+                  className="flex-1 gap-2"
+                  disabled={isPending}
+                >
                   {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                   {isPending ? "Registering..." : "Confirm"}
                 </Button>

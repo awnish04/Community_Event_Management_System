@@ -18,8 +18,13 @@ interface UserMenuProps {
 export function UserMenu({ variant = "avatar" }: UserMenuProps) {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -39,12 +44,13 @@ export function UserMenu({ variant = "avatar" }: UserMenuProps) {
   // Fallback to empty strings if user is null
   const name = user?.name || "User"
   const email = user?.email || ""
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() || "U"
+  const initials =
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U"
 
   const close = () => setOpen(false)
 
@@ -64,18 +70,18 @@ export function UserMenu({ variant = "avatar" }: UserMenuProps) {
           aria-expanded={open}
           className="group flex w-full items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-muted"
         >
-          <Avatar className="size-7 shrink-0">
+          <Avatar className="size-7 shrink-0" suppressHydrationWarning>
             <AvatarImage src="" alt={name} />
             <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
-              {initials}
+              {mounted ? initials : "U"}
             </AvatarFallback>
           </Avatar>
           <div className="flex min-w-0 flex-1 flex-col items-start">
             <span className="w-full truncate text-left text-xs font-semibold text-foreground">
-              {name}
+              {mounted ? name : "User"}
             </span>
             <span className="w-full truncate text-left text-[10px] text-muted-foreground">
-              {email}
+              {mounted ? email : ""}
             </span>
           </div>
           <ChevronUp
@@ -90,24 +96,27 @@ export function UserMenu({ variant = "avatar" }: UserMenuProps) {
         /* ── Avatar trigger (desktop navbar) ── */
         <button
           onClick={() => setOpen((v) => !v)}
-          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           aria-label="User menu"
         >
-          <Avatar className="size-8 cursor-pointer ring-2 ring-primary/20 transition-all hover:ring-primary/50">
+          <Avatar
+            className="size-8 cursor-pointer ring-2 ring-primary/20 transition-all hover:ring-primary/50"
+            suppressHydrationWarning
+          >
             <AvatarImage src="" alt={name} />
             <AvatarFallback className="bg-primary text-sm font-bold text-primary-foreground">
-              {initials}
+              {mounted ? initials : "U"}
             </AvatarFallback>
           </Avatar>
         </button>
       )}
 
       {/* ── Dropdown menu ── */}
-      {open && (
+      {open && mounted && (
         <div className={dropdownClass}>
           {/* User info header */}
           <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-            <Avatar className="size-8">
+            <Avatar className="size-8" suppressHydrationWarning>
               <AvatarImage src="" alt={name} />
               <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
                 {initials}

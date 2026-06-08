@@ -5,32 +5,36 @@ import {
   text,
   timestamp,
   integer,
-  pgEnum,
 } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 
-// Enums
-export const userRoleEnum = pgEnum("user_role", ["admin", "user"])
-export const registrationStatusEnum = pgEnum("registration_status", [
-  "pending",
-  "confirmed",
-  "cancelled",
-  "waitlist",
-])
+// ─── Administrators ───────────────────────────────────────────────────────────
+// Separate table — only one administrator account exists in the system.
+// Created once via db:push + manual insert (or the setup route).
+export const administrators = pgTable("administrators", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  phone: varchar("phone", { length: 20 }),
+  password: varchar("password", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
 
-// Users table (for authentication and role management)
+// ─── Users ────────────────────────────────────────────────────────────────────
+// Regular (non-admin) accounts. Created on public registration.
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   phone: varchar("phone", { length: 20 }),
   password: varchar("password", { length: 255 }).notNull(),
-  role: userRoleEnum("role").default("user").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
-// Participants table (extends users - for event registration)
+// ─── Participants ─────────────────────────────────────────────────────────────
+// One participant row per user — created automatically on registration.
 export const participants = pgTable("participants", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")
@@ -41,7 +45,7 @@ export const participants = pgTable("participants", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
-// Venues table
+// ─── Venues ───────────────────────────────────────────────────────────────────
 export const venues = pgTable("venues", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -52,17 +56,17 @@ export const venues = pgTable("venues", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
-// Activities table
+// ─── Activities ───────────────────────────────────────────────────────────────
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  type: varchar("type", { length: 100 }), // workshop, talk, game, etc.
+  type: varchar("type", { length: 100 }), // workshop, talk, game, exhibition…
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
-// Events table
+// ─── Events ───────────────────────────────────────────────────────────────────
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -70,14 +74,14 @@ export const events = pgTable("events", {
   eventDate: timestamp("event_date").notNull(),
   eventTime: varchar("event_time", { length: 50 }).notNull(),
   capacity: integer("capacity").notNull(),
-  createdBy: integer("created_by").references(() => users.id, {
+  createdBy: integer("created_by").references(() => administrators.id, {
     onDelete: "set null",
   }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
-// Registrations table (junction table: Participants <-> Events)
+// ─── Registrations (Participants ↔ Events) ────────────────────────────────────
 export const registrations = pgTable("registrations", {
   id: serial("id").primaryKey(),
   participantId: integer("participant_id")
@@ -86,13 +90,15 @@ export const registrations = pgTable("registrations", {
   eventId: integer("event_id")
     .references(() => events.id, { onDelete: "cascade" })
     .notNull(),
-  status: registrationStatusEnum("status").default("pending").notNull(),
+  status: varchar("status", { length: 50 }).default("confirmed").notNull(),
+  ticketId: varchar("ticket_id", { length: 255 }).unique(),
+  qrCode: text("qr_code"),
   registrationDate: timestamp("registration_date").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
-// Event Activities junction table (Events <-> Activities many-to-many)
+// ─── Event ↔ Activities (many-to-many) ───────────────────────────────────────
 export const eventActivities = pgTable("event_activities", {
   id: serial("id").primaryKey(),
   eventId: integer("event_id")
@@ -104,7 +110,7 @@ export const eventActivities = pgTable("event_activities", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
-// Event Venues junction table (Events <-> Venues many-to-many)
+// ─── Event ↔ Venues (many-to-many) ───────────────────────────────────────────
 export const eventVenues = pgTable("event_venues", {
   id: serial("id").primaryKey(),
   eventId: integer("event_id")
@@ -116,13 +122,19 @@ export const eventVenues = pgTable("event_venues", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
-// Relations
-export const usersRelations = relations(users, ({ one, many }) => ({
+// ─── Relations ────────────────────────────────────────────────────────────────
+export const administratorsRelations = relations(
+  administrators,
+  ({ many }) => ({
+    createdEvents: many(events),
+  })
+)
+
+export const usersRelations = relations(users, ({ one }) => ({
   participant: one(participants, {
     fields: [users.id],
     references: [participants.userId],
   }),
-  createdEvents: many(events),
 }))
 
 export const participantsRelations = relations(
@@ -145,9 +157,9 @@ export const activitiesRelations = relations(activities, ({ many }) => ({
 }))
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
-  creator: one(users, {
+  creator: one(administrators, {
     fields: [events.createdBy],
-    references: [users.id],
+    references: [administrators.id],
   }),
   registrations: many(registrations),
   eventActivities: many(eventActivities),

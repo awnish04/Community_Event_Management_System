@@ -1,92 +1,113 @@
-'use client'
+"use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
+import { createContext, useContext, useState, ReactNode } from "react"
+import { useRouter } from "next/navigation"
 
 export interface User {
   id: string
   name: string
   email: string
   phone?: string
-  role: 'ADMIN' | 'USER'
+  role: "ADMIN" | "USER"
   createdAt: string
 }
 
 interface AuthContextType {
   user: User | null
-  token: string | null
   loading: boolean
   isAuthenticated: boolean
-  login: (email: string, password: string, role: 'ADMIN' | 'USER') => Promise<void>
-  register: (name: string, email: string, password: string, phone?: string) => Promise<void>
+  login: (
+    email: string,
+    password: string,
+    role: "ADMIN" | "USER"
+  ) => Promise<void>
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    phone?: string
+  ) => Promise<void>
   logout: () => void
   error: string | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+function setCookie(name: string, value: string, days = 1) {
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${
+    days * 86400
+  }; SameSite=Lax`
+}
+
+function clearCookie(name: string) {
+  document.cookie = `${name}=; path=/; max-age=0`
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(() => {
+    // Runs once on mount — safe to call localStorage here
+    if (typeof window === "undefined") return null
+    try {
+      const stored = localStorage.getItem("authUser")
+      if (!stored) return null
+      const parsed: User = JSON.parse(stored)
+      // Re-sync cookies in case they expired (e.g. browser restart)
+      setCookie("userEmail", parsed.email)
+      setCookie("userName", parsed.name)
+      if (parsed.role === "ADMIN") {
+        setCookie("adminRole", "ADMIN")
+      } else {
+        setCookie("userRole", "USER")
+      }
+      return parsed
+    } catch {
+      localStorage.removeItem("authUser")
+      return null
+    }
+  })
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem('token')
-    const storedUser = localStorage.getItem('user')
-
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken)
-        setUser(JSON.parse(storedUser))
-      } catch (err) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-      }
-    }
-    setLoading(false)
-  }, [])
-
-  const login = async (email: string, password: string, role: 'ADMIN' | 'USER') => {
+  const login = async (
+    email: string,
+    password: string,
+    role: "ADMIN" | "USER"
+  ) => {
     setLoading(true)
     setError(null)
     try {
-      const mockUser: User = {
-        id: '1',
-        name: email.split('@')[0],
-        email,
-        role,
-        createdAt: new Date().toISOString(),
-      }
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, role }),
+      })
 
-      const mockToken = 'mock-token-' + Date.now()
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Login failed")
 
-      if (role === 'ADMIN') {
-        localStorage.setItem('adminToken', mockToken)
-        localStorage.setItem('adminUser', JSON.stringify(mockUser))
-        localStorage.setItem('adminRole', role)
-        document.cookie = `adminToken=${mockToken}; path=/; max-age=86400`
-        document.cookie = `adminRole=${role}; path=/; max-age=86400`
+      const loggedInUser: User = data.user
+      setUser(loggedInUser)
+      localStorage.setItem("authUser", JSON.stringify(loggedInUser))
+
+      // Set cookies that middleware reads
+      setCookie("userEmail", loggedInUser.email)
+      setCookie("userName", loggedInUser.name)
+
+      if (role === "ADMIN") {
+        setCookie("adminRole", "ADMIN")
+        clearCookie("userRole")
       } else {
-        setUser(mockUser)
-        setToken(mockToken)
-        localStorage.setItem('token', mockToken)
-        localStorage.setItem('user', JSON.stringify(mockUser))
-        localStorage.setItem('userRole', role)
-        document.cookie = `token=${mockToken}; path=/; max-age=86400`
-        document.cookie = `userRole=${role}; path=/; max-age=86400`
-        document.cookie = `userEmail=${email}; path=/; max-age=86400`
+        setCookie("userRole", "USER")
+        clearCookie("adminRole")
       }
 
-      if (role === 'ADMIN') {
-        router.push('/admin')
-      } else {
-        router.push('/user/dashboard')
-      }
+      // Small delay so cookies are written before middleware checks them
+      await new Promise((r) => setTimeout(r, 50))
+      router.push(role === "ADMIN" ? "/admin" : "/user/dashboard")
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed'
-      setError(errorMessage)
+      const msg = err instanceof Error ? err.message : "Login failed"
+      setError(msg)
       throw err
     } finally {
       setLoading(false)
@@ -102,31 +123,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     setError(null)
     try {
-      const mockUser: User = {
-        id: Date.now().toString(),
-        name,
-        email,
-        phone,
-        role: 'USER',
-        createdAt: new Date().toISOString(),
-      }
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, phone }),
+      })
 
-      const mockToken = 'mock-token-' + Date.now()
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Registration failed")
 
-      setUser(mockUser)
-      setToken(mockToken)
-      localStorage.setItem('token', mockToken)
-      localStorage.setItem('user', JSON.stringify(mockUser))
-      localStorage.setItem('userRole', 'USER')
-
-      document.cookie = `token=${mockToken}; path=/; max-age=86400`
-      document.cookie = `userRole=USER; path=/; max-age=86400`
-      document.cookie = `userEmail=${email}; path=/; max-age=86400`
-
-      router.push('/user/dashboard')
+      // Account created — do NOT log in automatically.
+      // The register page will show a success message and redirect to login.
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed'
-      setError(errorMessage)
+      const msg = err instanceof Error ? err.message : "Registration failed"
+      setError(msg)
       throw err
     } finally {
       setLoading(false)
@@ -135,23 +145,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null)
-    setToken(null)
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    localStorage.removeItem('userRole')
-    
-    document.cookie = 'token=; path=/; max-age=0'
-    document.cookie = 'userRole=; path=/; max-age=0'
-    document.cookie = 'userEmail=; path=/; max-age=0'
-    
-    router.push('/')
+    localStorage.removeItem("authUser")
+    clearCookie("userEmail")
+    clearCookie("userName")
+    clearCookie("userRole")
+    clearCookie("adminRole")
+    router.push("/")
   }
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
         loading,
         isAuthenticated: !!user,
         login,
@@ -167,8 +172,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
+  if (!context) throw new Error("useAuth must be used within AuthProvider")
   return context
 }

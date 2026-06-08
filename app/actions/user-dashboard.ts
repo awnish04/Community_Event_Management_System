@@ -1,28 +1,49 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server"
 
 import { db } from "@/db"
-import { events, venues, registrations, participants, users, eventVenues, eventActivities, activities } from "@/db/schema"
-import { eq, and, sql, desc, gte } from "drizzle-orm"
+import {
+  events,
+  venues,
+  registrations,
+  participants,
+  users,
+  eventVenues,
+  eventActivities,
+  activities,
+} from "@/db/schema"
+import { eq, sql, desc, gte } from "drizzle-orm"
 
 // Get stats for the user dashboard
 export async function getUserDashboardStats(email: string) {
   try {
-    const user = await db.query.users.findFirst({ where: eq(users.email, email) })
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    })
     if (!user) return null
 
-    const participant = await db.query.participants.findFirst({ where: eq(participants.userId, user.id) })
+    const participant = await db.query.participants.findFirst({
+      where: eq(participants.userId, user.id),
+    })
     if (!participant) return null
 
-    const userRegs = await db.select().from(registrations).where(eq(registrations.participantId, participant.id))
-    
+    const userRegs = await db
+      .select()
+      .from(registrations)
+      .where(eq(registrations.participantId, participant.id))
+
     // Also get system-wide events stats for "Discover" summary
-    const allEvents = await db.select().from(events).where(gte(events.eventDate, new Date()))
-    
+    const allEvents = await db
+      .select()
+      .from(events)
+      .where(gte(events.eventDate, new Date()))
+
     return {
       totalRegistrations: userRegs.length,
-      pendingRegistrations: userRegs.filter(r => r.status === "pending").length,
+      confirmedRegistrations: userRegs.filter((r) => r.status === "confirmed")
+        .length,
       upcomingEvents: allEvents.length,
-      totalEvents: allEvents.length
+      totalEvents: allEvents.length,
     }
   } catch (err) {
     console.error(err)
@@ -59,7 +80,9 @@ export async function getDiscoverEvents(email: string) {
       .from(registrations)
       .where(sql`${registrations.status} IN ('pending', 'confirmed')`)
       .groupBy(registrations.eventId)
-    const countMap = Object.fromEntries(counts.map((c) => [c.eventId, Number(c.count)]))
+    const countMap = Object.fromEntries(
+      counts.map((c) => [c.eventId, Number(c.count)])
+    )
 
     // 3. Get activities per event
     const eventActs = await db
@@ -71,22 +94,33 @@ export async function getDiscoverEvents(email: string) {
       })
       .from(eventActivities)
       .innerJoin(activities, eq(eventActivities.activityId, activities.id))
-    
+
     const activityMap = new Map<number, any[]>()
     for (const act of eventActs) {
       if (!activityMap.has(act.eventId)) activityMap.set(act.eventId, [])
-      activityMap.get(act.eventId)!.push({ id: act.activityId, name: act.activityName, type: act.activityType })
+      activityMap.get(act.eventId)!.push({
+        id: act.activityId,
+        name: act.activityName,
+        type: act.activityType,
+      })
     }
 
     // 4. Get current user's registrations to mark "Registered" or "Pending"
     let userRegMap = new Map<number, string>()
     if (email) {
-      const user = await db.query.users.findFirst({ where: eq(users.email, email) })
+      const user = await db.query.users.findFirst({
+        where: eq(users.email, email),
+      })
       if (user) {
-        const participant = await db.query.participants.findFirst({ where: eq(participants.userId, user.id) })
+        const participant = await db.query.participants.findFirst({
+          where: eq(participants.userId, user.id),
+        })
         if (participant) {
-          const userRegs = await db.select().from(registrations).where(eq(registrations.participantId, participant.id))
-          userRegMap = new Map(userRegs.map(r => [r.eventId, r.status]))
+          const userRegs = await db
+            .select()
+            .from(registrations)
+            .where(eq(registrations.participantId, participant.id))
+          userRegMap = new Map(userRegs.map((r) => [r.eventId, r.status]))
         }
       }
     }
@@ -104,7 +138,7 @@ export async function getDiscoverEvents(email: string) {
         isFull: registered >= e.capacity,
         venue: { id: String(e.venueId), name: e.venueName || "TBA" },
         activities: activityMap.get(e.id) || [],
-        userRegistrationStatus: userRegMap.get(e.id) || null
+        userRegistrationStatus: userRegMap.get(e.id) || null,
       }
     })
   } catch (err) {
@@ -116,10 +150,18 @@ export async function getDiscoverEvents(email: string) {
 // Get specifically the events the user has registered for
 export async function getUserRegistrations(email: string) {
   try {
-    const user = await db.query.users.findFirst({ where: eq(users.email, email) })
+    console.log("getUserRegistrations called with email:", email)
+
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    })
+    console.log("Found user:", user)
     if (!user) return []
 
-    const participant = await db.query.participants.findFirst({ where: eq(participants.userId, user.id) })
+    const participant = await db.query.participants.findFirst({
+      where: eq(participants.userId, user.id),
+    })
+    console.log("Found participant:", participant)
     if (!participant) return []
 
     const regs = await db
@@ -127,33 +169,45 @@ export async function getUserRegistrations(email: string) {
         id: registrations.id,
         eventId: registrations.eventId,
         status: registrations.status,
+        ticketId: registrations.ticketId,
+        qrCode: registrations.qrCode,
         registrationDate: registrations.registrationDate,
         eventName: events.name,
         eventDate: events.eventDate,
         eventTime: events.eventTime,
         venueName: venues.name,
+        attendeeName: users.name,
+        attendeeEmail: users.email,
       })
       .from(registrations)
       .innerJoin(events, eq(registrations.eventId, events.id))
+      .innerJoin(participants, eq(registrations.participantId, participants.id))
+      .innerJoin(users, eq(participants.userId, users.id))
       .leftJoin(eventVenues, eq(events.id, eventVenues.eventId))
       .leftJoin(venues, eq(eventVenues.venueId, venues.id))
       .where(eq(registrations.participantId, participant.id))
       .orderBy(desc(registrations.registrationDate))
 
-    return regs.map(r => ({
+    console.log("Found registrations:", regs.length, regs)
+
+    return regs.map((r) => ({
       id: String(r.id),
       eventId: String(r.eventId),
       eventName: r.eventName,
       status: r.status.toUpperCase(),
+      ticketId: r.ticketId || undefined,
+      qrCode: r.qrCode || undefined,
       registrationDate: r.registrationDate.toISOString(),
+      attendeeName: r.attendeeName,
+      attendeeEmail: r.attendeeEmail,
       event: {
         eventDate: r.eventDate.toISOString(),
         eventTime: r.eventTime,
-        venue: { name: r.venueName || "TBA" }
-      }
+        venue: { name: r.venueName || "TBA" },
+      },
     }))
   } catch (err) {
-    console.error(err)
+    console.error("Error in getUserRegistrations:", err)
     return []
   }
 }

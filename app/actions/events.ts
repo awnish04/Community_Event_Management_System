@@ -15,19 +15,24 @@ export async function createEvent(formData: FormData) {
   const venueId = venueIdRaw ? parseInt(venueIdRaw, 10) : null
 
   const activityIdsRaw = formData.getAll("activityIds") as string[]
-  const activityIds = activityIdsRaw.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id))
+  const activityIds = activityIdsRaw
+    .map((id) => parseInt(id, 10))
+    .filter((id) => !isNaN(id))
 
   if (!name || !description || !eventDate || !eventTime || !capacity) {
     throw new Error("All required fields must be filled.")
   }
 
-  const [newEvent] = await db.insert(events).values({
-    name,
-    description,
-    eventDate: new Date(eventDate),
-    eventTime,
-    capacity,
-  }).returning({ id: events.id })
+  const [newEvent] = await db
+    .insert(events)
+    .values({
+      name,
+      description,
+      eventDate: new Date(eventDate),
+      eventTime,
+      capacity,
+    })
+    .returning({ id: events.id })
 
   if (venueId) {
     await db.insert(eventVenues).values({
@@ -80,7 +85,10 @@ export async function editVenue(id: number, formData: FormData) {
     throw new Error("Name, address, and capacity are required.")
   }
 
-  await db.update(venues).set({ name, address, capacity, description, updatedAt: new Date() }).where(eq(venues.id, id))
+  await db
+    .update(venues)
+    .set({ name, address, capacity, description, updatedAt: new Date() })
+    .where(eq(venues.id, id))
 
   revalidatePath("/admin/venues")
 }
@@ -99,43 +107,52 @@ export async function editEvent(id: number, formData: FormData) {
   const eventTime = formData.get("eventTime") as string
   const capacity = parseInt(formData.get("capacity") as string, 10)
   const venueIdRaw = formData.get("venueId") as string
-  const venueId = venueIdRaw && venueIdRaw !== "_none" ? parseInt(venueIdRaw, 10) : null
+  const venueId =
+    venueIdRaw && venueIdRaw !== "_none" ? parseInt(venueIdRaw, 10) : null
 
   const activityIdsRaw = formData.getAll("activityIds") as string[]
-  const activityIds = activityIdsRaw.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id))
+  const activityIds = activityIdsRaw
+    .map((id) => parseInt(id, 10))
+    .filter((id) => !isNaN(id))
 
   if (!name || !description || !eventDate || !eventTime || !capacity) {
     throw new Error("All required fields must be filled.")
   }
 
-  await db.update(events).set({
-    name,
-    description,
-    eventDate: new Date(eventDate),
-    eventTime,
-    capacity,
-    updatedAt: new Date()
-  }).where(eq(events.id, id))
+  await db
+    .update(events)
+    .set({
+      name,
+      description,
+      eventDate: new Date(eventDate),
+      eventTime,
+      capacity,
+      updatedAt: new Date(),
+    })
+    .where(eq(events.id, id))
 
   if (venueId) {
     // Check if venue already exists
     const existing = await db.query.eventVenues.findFirst({
-      where: eq(eventVenues.eventId, id)
+      where: eq(eventVenues.eventId, id),
     })
-    
+
     if (existing) {
       if (existing.venueId !== venueId) {
-        await db.update(eventVenues).set({ venueId }).where(eq(eventVenues.eventId, id))
+        await db
+          .update(eventVenues)
+          .set({ venueId })
+          .where(eq(eventVenues.eventId, id))
       }
     } else {
       await db.insert(eventVenues).values({
         eventId: id,
-        venueId
+        venueId,
       })
     }
   } else {
-     // delete any existing venue links
-     await db.delete(eventVenues).where(eq(eventVenues.eventId, id))
+    // delete any existing venue links
+    await db.delete(eventVenues).where(eq(eventVenues.eventId, id))
   }
 
   // Update activities relation

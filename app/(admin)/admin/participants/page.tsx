@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ParticipantsTable } from "@/components/admin/participants/ParticipantsTable"
 import { db } from "@/db"
 import { registrations } from "@/db/schema"
 import { desc } from "drizzle-orm"
+
+export const dynamic = "force-dynamic"
 
 export default async function AdminParticipantsPage() {
   let allRegistrations: any[] = []
@@ -21,12 +24,13 @@ export default async function AdminParticipantsPage() {
 
     allRegistrations = regs.map((r) => ({
       id: r.id,
-      status: r.status,
       registrationDate: r.registrationDate,
       userName: r.participant?.user?.name || "Anonymous",
       userEmail: r.participant?.user?.email || "No email",
       userPhone: r.participant?.user?.phone || null,
       eventName: r.event?.name || "TBA",
+      ticketId: r.ticketId || null,
+      qrCode: r.qrCode || null,
     }))
   } catch (err) {
     console.error("Error loading admin participants page:", err)

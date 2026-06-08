@@ -62,9 +62,7 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
       selectedVenue !== "all-venues" &&
       selectedVenue !== "_all"
     ) {
-      filtered = filtered.filter(
-        (event) => event.venue.name === selectedVenue
-      )
+      filtered = filtered.filter((event) => event.venue.name === selectedVenue)
     }
 
     if (
@@ -100,7 +98,10 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
     new Set(
       initialEvents
         .flatMap((e) => e.activities?.map((a: any) => a.name) || [])
-        .filter((name): name is string => typeof name === "string" && name.trim() !== "")
+        .filter(
+          (name): name is string =>
+            typeof name === "string" && name.trim() !== ""
+        )
     )
   )
 
@@ -226,20 +227,9 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
                   {event.userRegistrationStatus && (
                     <Badge
                       variant="outline"
-                      className={cn(
-                        "shrink-0 capitalize font-semibold px-2.5 py-0.5 rounded-full border shadow-none",
-                        event.userRegistrationStatus === "confirmed"
-                          ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/50"
-                          : event.userRegistrationStatus === "cancelled"
-                            ? "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/50"
-                            : "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/50"
-                      )}
+                      className="shrink-0 border-emerald-200/60 bg-emerald-50 px-2.5 py-0.5 font-semibold shadow-none dark:border-emerald-800/50 dark:bg-emerald-950/20 dark:text-emerald-400"
                     >
-                      {event.userRegistrationStatus === "confirmed"
-                        ? "Registered"
-                        : event.userRegistrationStatus === "cancelled"
-                          ? "Cancelled"
-                          : "Pending"}
+                      Registered
                     </Badge>
                   )}
                 </div>
@@ -307,11 +297,11 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
                           }
                           capacity={event.capacity}
                           currentRegistrations={event.currentRegistrations}
-                          occupancyPercentage={
-                            (event.currentRegistrations / event.capacity) * 100
-                          }
                           isFull={event.isFull}
-                          onSuccess={() => setOpenDialogId(null)}
+                          onSuccess={() => {
+                            setOpenDialogId(null)
+                            window.location.reload()
+                          }}
                         />
                       </DialogContent>
                     </Dialog>

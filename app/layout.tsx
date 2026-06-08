@@ -28,6 +28,7 @@ export default function RootLayout({
           <AuthProvider>
             <TooltipProvider>
               <main className="flex w-full flex-1 flex-col">{children}</main>
+              <Toaster position="top-center" richColors closeButton={false} />
             </TooltipProvider>
           </AuthProvider>
         </ThemeProvider>

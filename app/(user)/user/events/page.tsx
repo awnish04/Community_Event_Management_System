@@ -2,6 +2,8 @@ import { cookies } from "next/headers"
 import { getDiscoverEvents } from "@/app/actions/user-dashboard"
 import { UserEventsView } from "@/components/user/events/UserEventsView"
 
+export const dynamic = "force-dynamic"
+
 export default async function UserEventsPage() {
   const cookieStore = await cookies()
   const email = cookieStore.get("userEmail")?.value || ""

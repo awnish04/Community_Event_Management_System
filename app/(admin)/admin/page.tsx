@@ -1,16 +1,18 @@
-import { SectionCards } from "@/components/admin/dashboard/section-cards"
+import { DashboardCards } from "@/components/admin/dashboard/DashboardCards"
 import { db } from "@/db"
 import { events, users, venues, activities, registrations } from "@/db/schema"
+
+export const dynamic = "force-dynamic"
 
 export default async function AdminDashboardPage() {
   let totalEvents = 0
   let upcomingEvents = 0
-  let totalParticipants = 0
-  let newParticipants = 0
+  let totalUsers = 0
+  let newUsersThisMonth = 0
   let totalVenues = 0
   let totalActivities = 0
   let totalRegistrations = 0
-  let pendingRegistrations = 0
+  let confirmedRegistrations = 0
 
   try {
     const now = new Date()
@@ -27,30 +29,34 @@ export default async function AdminDashboardPage() {
 
     totalEvents = allEvents.length
     upcomingEvents = allEvents.filter((e) => new Date(e.eventDate) > now).length
-    totalParticipants = allUsers.length
-    newParticipants = allUsers.filter(
+    totalUsers = allUsers.length
+    newUsersThisMonth = allUsers.filter(
       (u) => new Date(u.createdAt) >= startOfMonth
     ).length
     totalVenues = allVenues.length
     totalActivities = allActivities.length
     totalRegistrations = allRegistrations.length
-    pendingRegistrations = allRegistrations.filter(
-      (r) => r.status === "pending"
+    confirmedRegistrations = allRegistrations.filter(
+      (r) => r.status === "confirmed"
     ).length
   } catch {
     // fallback to zeros — DB may not be seeded yet
   }
 
+  // Get current month name
+  const currentMonthName = new Date().toLocaleString("en-US", { month: "long" })
+
   return (
-    <SectionCards
+    <DashboardCards
       totalEvents={totalEvents}
       upcomingEvents={upcomingEvents}
-      totalParticipants={totalParticipants}
-      newParticipants={newParticipants}
+      totalUsers={totalUsers}
+      newUsersThisMonth={newUsersThisMonth}
+      currentMonthName={currentMonthName}
       totalVenues={totalVenues}
       totalActivities={totalActivities}
       totalRegistrations={totalRegistrations}
-      pendingRegistrations={pendingRegistrations}
+      confirmedRegistrations={confirmedRegistrations}
     />
   )
 }

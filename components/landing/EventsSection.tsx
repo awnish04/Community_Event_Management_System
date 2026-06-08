@@ -1,7 +1,9 @@
 "use client"
 
 import { motion } from "motion/react"
-import Link from "next/link"
+import Image from "next/image"
+import { useAuth } from "@/lib/context/AuthContext"
+import { useRouter } from "next/navigation"
 
 type DatabaseEvent = {
   id: number
@@ -22,6 +24,17 @@ export function EventsSection({
   initialEvents: DatabaseEvent[]
   titleWeight: number
 }) {
+  const { user } = useAuth()
+  const router = useRouter()
+
+  const handleEventClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (user) {
+      router.push("/user/events")
+    } else {
+      router.push("/auth/register")
+    }
+  }
   const defaultEvents = [
     {
       id: "mock-1" as string | number,
@@ -52,11 +65,14 @@ export function EventsSection({
   const mappedEvents =
     initialEvents.length > 0
       ? initialEvents.slice(0, 4).map((event, i) => {
-          const formattedDate = new Date(event.eventDate).toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          })
+          const formattedDate = new Date(event.eventDate).toLocaleDateString(
+            "en-US",
+            {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            }
+          )
           return {
             id: event.id as string | number,
             img: [
@@ -73,20 +89,18 @@ export function EventsSection({
       : defaultEvents
 
   return (
-    <section className="py-12 lg:py-16 pb-20 lg:pb-28">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-10">
+    <section className="py-12 pb-20 lg:py-16 lg:pb-28">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="mb-10 flex items-center justify-between">
           <h2
-            className="text-2xl sm:text-3xl font-display text-foreground tracking-[-0.02em]"
+            className="font-display text-2xl tracking-[-0.02em] text-foreground sm:text-3xl"
             style={{ fontWeight: titleWeight }}
           >
             Popular events on eventspark
           </h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {mappedEvents.map((event, i) => {
-            const href = "#"
-
             return (
               <motion.div
                 key={event.id}
@@ -95,23 +109,28 @@ export function EventsSection({
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
               >
-                <Link href={href} className="group block cursor-pointer">
+                <div
+                  onClick={handleEventClick}
+                  className="group block cursor-pointer"
+                >
                   <div>
-                    <div className="relative rounded-xl overflow-hidden mb-3">
-                      <img
+                    <div className="relative mb-3 overflow-hidden rounded-xl">
+                      <Image
                         src={event.img}
                         alt={event.title}
-                        className="w-full h-[180px] object-cover group-hover:scale-105 transition-transform duration-300"
+                        width={300}
+                        height={180}
+                        className="h-[180px] w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">
+                    <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                       {event.date}
                     </p>
-                    <h4 className="font-display text-lg font-semibold text-foreground group-hover:text-primary transition-colors tracking-[-0.01em]">
+                    <h4 className="font-display text-lg font-semibold tracking-[-0.01em] text-foreground transition-colors group-hover:text-primary">
                       {event.title}
                     </h4>
                   </div>
-                </Link>
+                </div>
               </motion.div>
             )
           })}

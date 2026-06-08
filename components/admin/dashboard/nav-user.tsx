@@ -92,14 +92,17 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => {
-              document.cookie = 'adminToken=; path=/; max-age=0'
-              document.cookie = 'adminRole=; path=/; max-age=0'
-              localStorage.removeItem('adminToken')
-              localStorage.removeItem('adminRole')
-              localStorage.removeItem('adminUser')
-              window.location.href = '/auth/admin-login'
-            }}>
+            <DropdownMenuItem
+              onClick={() => {
+                // Clear all auth cookies
+                document.cookie = "adminRole=; path=/; max-age=0"
+                document.cookie = "userRole=; path=/; max-age=0"
+                document.cookie = "userEmail=; path=/; max-age=0"
+                document.cookie = "userName=; path=/; max-age=0"
+                localStorage.removeItem("authUser")
+                window.location.href = "/auth/admin-login"
+              }}
+            >
               <LogOut className="mr-2 size-4" />
               Log out
             </DropdownMenuItem>
