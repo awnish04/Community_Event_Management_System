@@ -216,9 +216,9 @@ export function HeroSection({
               </span>
             </h1>
             <p className="mx-auto mb-8 max-w-lg text-lg leading-relaxed text-muted-foreground">
-              register in seconds, and never miss something worth showing up
-              for. From workshops to community meetups your next experience is
-              one click away.
+              Discover local events, register in seconds, and never miss
+              something worth showing up for. From workshops to community
+              meetups your next experience is one click away.
             </p>
             <Link href={buttonHref}>
               <Button size="lg" className="h-12 px-8 text-base font-semibold">
