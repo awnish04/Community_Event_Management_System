@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useTransition, useSyncExternalStore } from "react"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
 import { Calendar, Sun, Moon } from "lucide-react"
@@ -13,6 +13,16 @@ import { useAuth } from "@/lib/context/AuthContext"
 import { UserMenu } from "@/components/user-menu"
 
 const NAV_LINKS: { label: string; href: string }[] = []
+
+// Stable subscribe/getSnapshot for useSyncExternalStore
+const subscribe = () => () => {}
+function useIsClient() {
+  return useSyncExternalStore(
+    subscribe,
+    () => true, // client snapshot
+    () => false // server snapshot
+  )
+}
 
 function MenuToggle({ open, onClick }: { open: boolean; onClick: () => void }) {
   return (
@@ -71,7 +81,11 @@ export function Navigation() {
   const pathname = usePathname() || "/"
   const { theme, setTheme } = useTheme()
   const [, startTransition] = useTransition()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
+  const isClient = useIsClient()
+
+  // isClient is false on the server (and first render), true on the client.
+  // This prevents hydration mismatch caused by auth state from localStorage.
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10)
@@ -98,9 +112,6 @@ export function Navigation() {
       document.body.style.overflow = ""
     }
   }, [menuOpen])
-
-  // Show navigation on all pages
-  const showNavigation = true
 
   return (
     <>
@@ -182,9 +193,9 @@ export function Navigation() {
                 className="flex items-center justify-center rounded-full border border-border bg-muted p-2 text-foreground transition-colors hover:bg-muted/80 [&_svg]:size-4"
               />
               <div className="flex items-center gap-2">
-                {isAuthenticated ? (
+                {isClient && isAuthenticated && user?.role === "USER" ? (
                   <UserMenu variant="avatar" />
-                ) : (
+                ) : !isClient || !isAuthenticated ? (
                   <>
                     <Link href="/auth/login">
                       <Button variant="ghost" size="lg" className="gap-2">
@@ -197,7 +208,7 @@ export function Navigation() {
                       </Button>
                     </Link>
                   </>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -304,14 +315,20 @@ export function Navigation() {
                     </button>
                   </div>
 
-                  {isAuthenticated ? (
+                  {isClient && isAuthenticated && user?.role === "USER" ? (
                     <div className="w-full">
                       <UserMenu variant="card" />
                     </div>
-                  ) : (
+                  ) : !isClient || !isAuthenticated ? (
                     <>
-                      <Link href="/auth/login" onClick={() => setMenuOpen(false)}>
-                        <Button variant="outline" className="h-12 w-full text-base">
+                      <Link
+                        href="/auth/login"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <Button
+                          variant="outline"
+                          className="h-12 w-full text-base"
+                        >
                           Log in
                         </Button>
                       </Link>
@@ -324,7 +341,7 @@ export function Navigation() {
                         </Button>
                       </Link>
                     </>
-                  )}
+                  ) : null}
                 </motion.div>
               </nav>
 
