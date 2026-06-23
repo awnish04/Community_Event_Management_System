@@ -8,17 +8,7 @@ import { SocialProofSection } from "./SocialProofSection"
 import { CtaSection } from "./CtaSection"
 import { Footer } from "@/components/Footer"
 
-type DatabaseEvent = {
-  id: number
-  name: string
-  description: string | null
-  eventDate: string
-  eventTime: string | null
-  venue: {
-    name: string
-    address?: string
-  }
-}
+import type { DatabaseEvent } from "@/components/landing/EventsSection";
 
 export function LandingClient({
   initialEvents,

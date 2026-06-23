@@ -98,7 +98,7 @@ export default function AdminLoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@example.com"
+                  placeholder="admin@eventhub.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
@@ -174,7 +174,7 @@ export default function AdminLoginPage() {
         {/* Demo Credentials */}
         <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/30 dark:bg-blue-900/20 dark:text-blue-200">
           <p className="font-semibold">Demo Admin Credentials:</p>
-          <p className="mt-1 text-xs">Email: admin@example.com</p>
+          <p className="mt-1 text-xs">Email: admin@eventhub.com</p>
           <p className="text-xs">Password: admin123</p>
         </div>
 

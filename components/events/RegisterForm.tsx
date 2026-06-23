@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
+import { useAuth } from "@/lib/context/AuthContext"
 
 interface Props {
   eventId: number
@@ -35,6 +36,7 @@ export function RegisterForm({
     error?: string
   } | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const { user } = useAuth()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -98,7 +100,15 @@ export function RegisterForm({
       {/* Registration form */}
       {!isFull && !result?.success && (
         <>
-          {!showForm ? (
+          {(!user || user.role !== "USER") ? (
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => router.push("/auth/login")}
+            >
+              Login to Register
+            </Button>
+          ) : !showForm ? (
             <Button
               className="w-full"
               size="lg"
@@ -108,26 +118,8 @@ export function RegisterForm({
             </Button>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="reg-name">Your Name *</Label>
-                <Input
-                  id="reg-name"
-                  name="name"
-                  placeholder="e.g. John Doe"
-                  required
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="reg-email">Email *</Label>
-                <Input
-                  id="reg-email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
+              <input type="hidden" name="name" value={user.name} />
+              <input type="hidden" name="email" value={user.email} />
               <div className="space-y-1.5">
                 <Label htmlFor="reg-phone">
                   Phone{" "}
@@ -175,9 +167,9 @@ export function RegisterForm({
         </Button>
       )}
 
-      {!isFull && !showForm && !result?.success && (
+      {!isFull && !showForm && !result?.success && (!user || user.role !== "USER") && (
         <p className="text-center text-xs text-muted-foreground">
-          No account needed — just your name and email
+          You must be logged in to register
         </p>
       )}
     </div>

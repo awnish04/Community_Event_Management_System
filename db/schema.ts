@@ -74,6 +74,7 @@ export const events = pgTable("events", {
   eventDate: timestamp("event_date").notNull(),
   eventTime: varchar("event_time", { length: 50 }).notNull(),
   capacity: integer("capacity").notNull(),
+  imageUrl: text("image_url"),
   createdBy: integer("created_by").references(() => administrators.id, {
     onDelete: "set null",
   }),

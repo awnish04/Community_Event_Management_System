@@ -28,6 +28,7 @@ export async function createEvent(formData: FormData) {
   const eventDate = formData.get("eventDate") as string
   const eventTime = formData.get("eventTime") as string
   const capacity = parseInt(formData.get("capacity") as string, 10)
+  const imageUrl = (formData.get("imageUrl") as string) || null
   const venueIdRaw = formData.get("venueId") as string
   const venueId = venueIdRaw ? parseInt(venueIdRaw, 10) : null
 
@@ -47,6 +48,7 @@ export async function createEvent(formData: FormData) {
     eventDate: new Date(eventDate),
     eventTime,
     capacity,
+    imageUrl,
     venueId,
     activityIds,
   })
@@ -129,6 +131,7 @@ export async function editEvent(id: number, formData: FormData) {
   const eventDate = formData.get("eventDate") as string
   const eventTime = formData.get("eventTime") as string
   const capacity = parseInt(formData.get("capacity") as string, 10)
+  const imageUrl = (formData.get("imageUrl") as string) || null
   const venueIdRaw = formData.get("venueId") as string
   const venueId =
     venueIdRaw && venueIdRaw !== "_none" ? parseInt(venueIdRaw, 10) : null
@@ -149,6 +152,7 @@ export async function editEvent(id: number, formData: FormData) {
     eventDate: new Date(eventDate),
     eventTime,
     capacity,
+    imageUrl,
     venueId,
     activityIds,
   })

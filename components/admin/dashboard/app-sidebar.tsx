@@ -40,8 +40,8 @@ export function AppSidebar({
   const pathname = usePathname()
 
   const resolvedUser: UserProp = user ?? {
-    name: "Admin User",
-    email: "admin@eventhub.com",
+    name: "Admin",
+    email: "",
     avatar: "",
   }
 

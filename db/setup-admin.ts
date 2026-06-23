@@ -18,7 +18,7 @@ async function setupAdmin() {
     .insert(administrators)
     .values({
       name: "Admin",
-      email: "admin@example.com",
+      email: "admin@eventhub.com",
       password: "admin123",
       phone: null,
     })

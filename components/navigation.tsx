@@ -195,7 +195,7 @@ export function Navigation() {
               <div className="flex items-center gap-2">
                 {isClient && isAuthenticated && user?.role === "USER" ? (
                   <UserMenu variant="avatar" />
-                ) : !isClient || !isAuthenticated ? (
+                ) : !isClient || !isAuthenticated || user?.role !== "USER" ? (
                   <>
                     <Link href="/auth/login">
                       <Button variant="ghost" size="lg" className="gap-2">
@@ -319,7 +319,7 @@ export function Navigation() {
                     <div className="w-full">
                       <UserMenu variant="card" />
                     </div>
-                  ) : !isClient || !isAuthenticated ? (
+                  ) : !isClient || !isAuthenticated || user?.role !== "USER" ? (
                     <>
                       <Link
                         href="/auth/login"

@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { LogOut, LayoutDashboard, Settings, ChevronUp } from "lucide-react"
+import {
+  LogOut,
+  LayoutDashboard,
+  Settings,
+  ChevronUp,
+  Home,
+} from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/context/AuthContext"
@@ -130,29 +136,17 @@ export function UserMenu({ variant = "avatar" }: UserMenuProps) {
             </div>
           </div>
 
-          {/* Nav links */}
+          {/* Back to Home Button */}
           <div className="py-1">
-            {user?.role === "ADMIN" ? (
-              <Link
-                href="/admin"
-                onClick={close}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
-              >
-                <LayoutDashboard className="size-4 text-muted-foreground" />
-                Dashboard
-              </Link>
-            ) : (
-              <Link
-                href="/user/dashboard"
-                onClick={close}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
-              >
-                <LayoutDashboard className="size-4 text-muted-foreground" />
-                Dashboard
-              </Link>
-            )}
+            <Link
+              href="/"
+              onClick={close}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+            >
+              <Home className="size-4 text-muted-foreground" />
+              Back to Home
+            </Link>
           </div>
-
           {/* Sign out */}
           <div className="border-t border-border py-1">
             <button

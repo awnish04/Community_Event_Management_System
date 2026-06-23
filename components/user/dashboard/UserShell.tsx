@@ -1,21 +1,42 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { UserSidebar } from "./user-sidebar"
 import { UserSiteHeader } from "./user-site-header"
 import type { ReactNode } from "react"
 import { useAuth } from "@/lib/context/AuthContext"
+import { useRouter } from "next/navigation"
 
 interface Props {
   children: ReactNode
 }
 
 export function UserShell({ children }: Props) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && !loading && (!user || user.role !== "USER")) {
+      router.replace("/auth/login")
+    }
+  }, [user, loading, router, mounted])
+
+  // Avoid hydration mismatch by waiting for mount
+  if (!mounted) return null
+
+  // Show nothing while checking auth or redirecting
+  if (!user || user.role !== "USER") return null
 
   const sessionUser = {
-    name: user?.name || "User",
-    email: user?.email || "user@eventhub.com",
+    name: user.name,
+    email: user.email,
     avatar: "",
   }
 

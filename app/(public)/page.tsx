@@ -14,6 +14,7 @@ async function getUpcomingEvents() {
         description: events.description,
         eventDate: events.eventDate,
         eventTime: events.eventTime,
+        imageUrl: events.imageUrl,
         venueName: venues.name,
         venueAddress: venues.address,
       })
@@ -29,6 +30,7 @@ async function getUpcomingEvents() {
       description: e.description,
       eventDate: e.eventDate.toISOString(),
       eventTime: e.eventTime,
+      imageUrl: e.imageUrl,
       venue: {
         name: e.venueName ?? "TBA",
         address: e.venueAddress ?? undefined,

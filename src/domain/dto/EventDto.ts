@@ -6,6 +6,7 @@ export interface CreateEventDto {
   eventDate: Date
   eventTime: string
   capacity: number
+  imageUrl?: string | null
   venueId?: number | null
   activityIds?: number[]
 }
@@ -16,6 +17,7 @@ export interface UpdateEventDto {
   eventDate?: Date
   eventTime?: string
   capacity?: number
+  imageUrl?: string | null
   venueId?: number | null
   activityIds?: number[]
 }
@@ -27,6 +29,7 @@ export interface EventDto {
   eventDate: Date
   eventTime: string
   capacity: number
+  imageUrl: string | null
   createdAt: Date
   updatedAt: Date
 }

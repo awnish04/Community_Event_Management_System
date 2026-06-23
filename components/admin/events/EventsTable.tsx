@@ -47,6 +47,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { ImageUploadPicker } from "./ImageUploadPicker"
 
 interface Event {
   id: number
@@ -79,6 +80,8 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
   const [venueName, setVenueName] = useState<string>("")
   const [activityId, setActivityId] = useState<string>("")
   const [activityName, setActivityName] = useState<string>("")
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
   function handleOpenChange(val: boolean) {
     if (!isPending) {
@@ -89,6 +92,8 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
         setVenueName("")
         setActivityId("")
         setActivityName("")
+        setImageUrl(null)
+        setIsUploadingImage(false)
       }
     }
   }
@@ -98,6 +103,7 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
     setError(null)
     const formData = new FormData(e.currentTarget)
     if (venueId) formData.set("venueId", venueId)
+    if (imageUrl) formData.set("imageUrl", imageUrl)
 
     startTransition(async () => {
       try {
@@ -179,6 +185,14 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
               required
             />
           </div>
+
+          <ImageUploadPicker
+            label="Event Image"
+            onUploadComplete={(url) => setImageUrl(url)}
+            onRemove={() => setImageUrl(null)}
+            onUploadStart={() => setIsUploadingImage(true)}
+            onUploadEnd={() => setIsUploadingImage(false)}
+          />
 
           <div className="space-y-1.5">
             <Label htmlFor="ev-venue">
@@ -273,7 +287,7 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending} className="gap-2">
+            <Button type="submit" disabled={isPending || isUploadingImage} className="gap-2">
               {isPending ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -298,6 +312,8 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
   const [venueName, setVenueName] = useState<string>("")
   const [activityId, setActivityId] = useState<string>("")
   const [activityName, setActivityName] = useState<string>("")
+  const [imageUrl, setImageUrl] = useState<string | null>(event.imageUrl || null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
   function handleOpenChange(val: boolean) {
     if (!isPending) {
@@ -305,6 +321,8 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
       if (!val) {
         setError(null)
       } else {
+        setImageUrl(event.imageUrl || null)
+        setIsUploadingImage(false)
         const currentVenueLink = (event as any).eventVenues?.[0]
         setVenueId(currentVenueLink ? String(currentVenueLink.venueId) : "")
         setVenueName(currentVenueLink?.venue ? `${currentVenueLink.venue.name} (cap. ${currentVenueLink.venue.capacity})` : "")
@@ -321,6 +339,7 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
     setError(null)
     const formData = new FormData(e.currentTarget)
     if (venueId) formData.set("venueId", venueId)
+    if (imageUrl) formData.set("imageUrl", imageUrl)
 
     startTransition(async () => {
       try {
@@ -423,6 +442,15 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
             />
           </div>
 
+          <ImageUploadPicker
+            label="Event Image"
+            defaultValue={event.imageUrl || null}
+            onUploadComplete={(url) => setImageUrl(url)}
+            onRemove={() => setImageUrl(null)}
+            onUploadStart={() => setIsUploadingImage(true)}
+            onUploadEnd={() => setIsUploadingImage(false)}
+          />
+
           <div className="space-y-1.5">
             <Label htmlFor={`ev-venue-${event.id}`}>
               Venue{" "}
@@ -516,7 +544,7 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending} className="gap-2">
+            <Button type="submit" disabled={isPending || isUploadingImage} className="gap-2">
               {isPending ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (

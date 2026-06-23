@@ -24,7 +24,11 @@ import { UserMenu } from "@/components/user-menu"
 const navItems: { title: string; url: string; icon: LucideIcon }[] = [
   { title: "Dashboard", url: "/user/dashboard", icon: LayoutDashboard },
   { title: "Discover Events", url: "/user/events", icon: Calendar },
-  { title: "My Registrations", url: "/user/registrations", icon: ClipboardList },
+  {
+    title: "My Registrations",
+    url: "/user/registrations",
+    icon: ClipboardList,
+  },
 ]
 
 type UserProp = { name: string; email: string; avatar: string }
@@ -79,20 +83,6 @@ export function UserSidebar({
               </SidebarMenuItem>
             )
           })}
-          
-          {/* Back to Home Button */}
-          <SidebarMenuItem className="mt-4">
-            <SidebarMenuButton
-              tooltip="Back to Home"
-              className="hover:bg-sidebar-accent"
-              onClick={() => {
-                window.location.href = "/"
-              }}
-            >
-              <Home className="size-4" />
-              <span>Back to Home</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
 

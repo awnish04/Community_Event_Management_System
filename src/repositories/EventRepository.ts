@@ -33,6 +33,7 @@ export class EventRepository implements IEventRepository {
         eventDate: data.eventDate,
         eventTime: data.eventTime,
         capacity: data.capacity,
+        imageUrl: data.imageUrl,
       })
       .returning()
     return created
@@ -49,6 +50,7 @@ export class EventRepository implements IEventRepository {
         ...(data.eventDate !== undefined && { eventDate: data.eventDate }),
         ...(data.eventTime !== undefined && { eventTime: data.eventTime }),
         ...(data.capacity !== undefined && { capacity: data.capacity }),
+        ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl }),
         updatedAt: new Date(),
       })
       .where(eq(events.id, id))

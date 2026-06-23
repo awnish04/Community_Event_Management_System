@@ -1,16 +1,16 @@
 "use client"
 
 import { motion } from "motion/react"
-import Image from "next/image"
 import { useAuth } from "@/lib/context/AuthContext"
 import { useRouter } from "next/navigation"
 
-type DatabaseEvent = {
+export type DatabaseEvent = {
   id: number
   name: string
   description: string | null
   eventDate: string
   eventTime: string | null
+  imageUrl: string | null
   venue: {
     name: string
     address?: string
@@ -32,7 +32,7 @@ export function EventsSection({
     if (user) {
       router.push("/user/events")
     } else {
-      router.push("/auth/register")
+      router.push("/auth/login")
     }
   }
   const defaultEvents = [
@@ -64,7 +64,7 @@ export function EventsSection({
 
   const mappedEvents =
     initialEvents.length > 0
-      ? initialEvents.slice(0, 4).map((event, i) => {
+      ? initialEvents.slice(0, 4).map((event) => {
           const formattedDate = new Date(event.eventDate).toLocaleDateString(
             "en-US",
             {
@@ -73,14 +73,10 @@ export function EventsSection({
               day: "numeric",
             }
           )
+
           return {
             id: event.id as string | number,
-            img: [
-              "/assets/event-hackathon-ai.jpg",
-              "/assets/event-chill-code-workshop.jpg",
-              "/assets/event-startup-weekend.jpg",
-              "/assets/event-vibe-coding-summit.jpg",
-            ][i % 4],
+            img: event.imageUrl ?? null,
             title: event.name,
             tag: event.venue?.name || "TBA",
             date: formattedDate,
@@ -109,28 +105,30 @@ export function EventsSection({
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
               >
-                <div
-                  onClick={handleEventClick}
-                  className="group block cursor-pointer"
-                >
-                  <div>
-                    <div className="relative mb-3 overflow-hidden rounded-xl">
-                      <Image
-                        src={event.img}
-                        alt={event.title}
-                        width={300}
-                        height={180}
-                        className="h-[180px] w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
+                  <div onClick={handleEventClick} className="group block cursor-pointer">
+                    <div>
+                      <div className="relative mb-3 overflow-hidden rounded-xl">
+                        {event.img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={event.img}
+                            alt={event.title}
+                            className="h-[180px] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="h-[180px] w-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                            <span className="text-muted-foreground text-sm">No image</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                        {event.date}
+                      </p>
+                      <h4 className="font-display text-lg font-semibold tracking-[-0.01em] text-foreground transition-colors group-hover:text-primary">
+                        {event.title}
+                      </h4>
                     </div>
-                    <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                      {event.date}
-                    </p>
-                    <h4 className="font-display text-lg font-semibold tracking-[-0.01em] text-foreground transition-colors group-hover:text-primary">
-                      {event.title}
-                    </h4>
                   </div>
-                </div>
               </motion.div>
             )
           })}
