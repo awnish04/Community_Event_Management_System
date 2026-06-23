@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { motion } from "motion/react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -8,7 +9,12 @@ import { useAuth } from "@/lib/context/AuthContext"
 
 export function CtaSection({ titleWeight }: { titleWeight: number }) {
   const { isAuthenticated } = useAuth()
-  const buttonHref = isAuthenticated ? "/user/dashboard" : "/auth/register"
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  const buttonHref =
+    mounted && isAuthenticated ? "/user/dashboard" : "/auth/register"
   return (
     <section className="relative overflow-hidden pt-10 pb-12 lg:pt-16 lg:pb-16">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">

@@ -47,7 +47,12 @@ export function HeroSection({
   confettiSpread: number
 }) {
   const { isAuthenticated } = useAuth()
-  const buttonHref = isAuthenticated ? "/user/dashboard" : "/auth/register"
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  const buttonHref =
+    mounted && isAuthenticated ? "/user/dashboard" : "/auth/register"
   const [wordIndex, setWordIndex] = useState(0)
 
   useEffect(() => {

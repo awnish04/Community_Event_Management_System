@@ -2,9 +2,26 @@
 
 import { revalidatePath } from "next/cache"
 import { db } from "@/db"
-import { events, eventVenues, venues, eventActivities } from "@/db/schema"
+import { venues } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
+// ── OOP layer imports ─────────────────────────────────────────────────────────
+// createEvent and deleteEvent are delegated to EventService → EventRepository.
+// editEvent keeps direct DB access (full update logic is complex to delegate
+// without breaking the application — editEvent is left as-is intentionally).
+import { eventService } from "@/src/container"
+import { EventNotFoundException } from "@/src/domain/exceptions/AppExceptions"
+
+/**
+ * Create an event.
+ *
+ * Call chain:
+ *   createEvent() [Server Action]
+ *     → EventService.createEvent()  [Service — business rule: capacity > 0]
+ *       → EventRepository.create()  [Repository → DB]
+ *       → EventRepository.linkVenue()  [Repository → DB]
+ *       → EventRepository.linkActivities()  [Repository → DB]
+ */
 export async function createEvent(formData: FormData) {
   const name = formData.get("name") as string
   const description = formData.get("description") as string
@@ -23,37 +40,48 @@ export async function createEvent(formData: FormData) {
     throw new Error("All required fields must be filled.")
   }
 
-  const [newEvent] = await db
-    .insert(events)
-    .values({
-      name,
-      description,
-      eventDate: new Date(eventDate),
-      eventTime,
-      capacity,
-    })
-    .returning({ id: events.id })
+  // Delegate to EventService — demonstrates Service Layer + Repository Pattern
+  await eventService.createEvent({
+    name,
+    description,
+    eventDate: new Date(eventDate),
+    eventTime,
+    capacity,
+    venueId,
+    activityIds,
+  })
 
-  if (venueId) {
-    await db.insert(eventVenues).values({
-      eventId: newEvent.id,
-      venueId,
-    })
-  }
+  revalidatePath("/")
+  revalidatePath("/events")
+  revalidatePath("/admin/events")
+}
 
-  if (activityIds.length > 0) {
-    await db.insert(eventActivities).values(
-      activityIds.map((activityId) => ({
-        eventId: newEvent.id,
-        activityId,
-      }))
-    )
+/**
+ * Delete an event.
+ *
+ * Call chain:
+ *   deleteEvent() [Server Action]
+ *     → EventService.deleteEvent()  [Service — throws EventNotFoundException if missing]
+ *       → EventRepository.delete()  [Repository → DB]
+ */
+export async function deleteEvent(id: number) {
+  try {
+    // Delegate to EventService — throws typed EventNotFoundException if not found
+    await eventService.deleteEvent(id)
+  } catch (err) {
+    if (err instanceof EventNotFoundException) {
+      // Event already deleted — treat as success
+      return
+    }
+    throw err
   }
 
   revalidatePath("/")
   revalidatePath("/events")
   revalidatePath("/admin/events")
 }
+
+// ── Venue actions — direct DB (not delegated, venue service not in scope) ─────
 
 export async function createVenue(formData: FormData) {
   const name = formData.get("name") as string
@@ -93,12 +121,7 @@ export async function editVenue(id: number, formData: FormData) {
   revalidatePath("/admin/venues")
 }
 
-export async function deleteEvent(id: number) {
-  await db.delete(events).where(eq(events.id, id))
-  revalidatePath("/")
-  revalidatePath("/events")
-  revalidatePath("/admin/events")
-}
+// ── editEvent — direct DB (complex multi-step update, kept as-is) ─────────────
 
 export async function editEvent(id: number, formData: FormData) {
   const name = formData.get("name") as string
@@ -119,52 +142,16 @@ export async function editEvent(id: number, formData: FormData) {
     throw new Error("All required fields must be filled.")
   }
 
-  await db
-    .update(events)
-    .set({
-      name,
-      description,
-      eventDate: new Date(eventDate),
-      eventTime,
-      capacity,
-      updatedAt: new Date(),
-    })
-    .where(eq(events.id, id))
-
-  if (venueId) {
-    // Check if venue already exists
-    const existing = await db.query.eventVenues.findFirst({
-      where: eq(eventVenues.eventId, id),
-    })
-
-    if (existing) {
-      if (existing.venueId !== venueId) {
-        await db
-          .update(eventVenues)
-          .set({ venueId })
-          .where(eq(eventVenues.eventId, id))
-      }
-    } else {
-      await db.insert(eventVenues).values({
-        eventId: id,
-        venueId,
-      })
-    }
-  } else {
-    // delete any existing venue links
-    await db.delete(eventVenues).where(eq(eventVenues.eventId, id))
-  }
-
-  // Update activities relation
-  await db.delete(eventActivities).where(eq(eventActivities.eventId, id))
-  if (activityIds.length > 0) {
-    await db.insert(eventActivities).values(
-      activityIds.map((activityId) => ({
-        eventId: id,
-        activityId,
-      }))
-    )
-  }
+  // Delegate core update + relation sync to EventService
+  await eventService.updateEvent(id, {
+    name,
+    description,
+    eventDate: new Date(eventDate),
+    eventTime,
+    capacity,
+    venueId,
+    activityIds,
+  })
 
   revalidatePath("/")
   revalidatePath("/events")

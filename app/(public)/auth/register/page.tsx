@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
@@ -59,7 +60,6 @@ export default function RegisterPage() {
       toast.success("Account created successfully!", {
         description: "Please log in with your credentials.",
       })
-      // Redirect to login page
       setTimeout(() => {
         router.push("/auth/login")
       }, 1000)
@@ -107,237 +107,225 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* ── Registration form ── */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-lg">
-          {/* Tab switcher */}
-          <div className="mb-6 grid grid-cols-2 rounded-full bg-muted p-1">
-            <Link
-              href="/auth/login"
-              className="flex items-center justify-center rounded-full py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Log in
-            </Link>
-            <div className="flex items-center justify-center rounded-full bg-card py-2 text-sm font-medium text-foreground shadow-sm">
-              Sign up
-            </div>
-          </div>
-
-          {error && (
-            <Alert variant="destructive" className="mb-4 rounded-xl">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name */}
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="name"
-                className="text-sm font-medium text-foreground"
+        {/* Registration card */}
+        <Card className="rounded-2xl border border-border shadow-lg">
+          <CardHeader className="pb-0">
+            {/* Tab switcher */}
+            <div className="grid grid-cols-2 rounded-full bg-muted p-1">
+              <Link
+                href="/auth/login"
+                className="flex items-center justify-center rounded-full py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                Full name
-              </Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={loading}
-                required
-                className="h-11 rounded-full border-input px-4"
-              />
-            </div>
-
-            {/* Email */}
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="email"
-                className="text-sm font-medium text-foreground"
-              >
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                required
-                className="h-11 rounded-full border-input px-4"
-              />
-            </div>
-
-            {/* Phone */}
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="phone"
-                className="text-sm font-medium text-foreground"
-              >
-                Phone{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+1 (555) 000-0000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={loading}
-                className="h-11 rounded-full border-input px-4"
-              />
-            </div>
-
-            {/* Password */}
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="password"
-                className="text-sm font-medium text-foreground"
-              >
-                Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => handlePasswordChange(e.target.value)}
-                  disabled={loading}
-                  required
-                  className="h-11 rounded-full border-input px-4 pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={loading}
-                  className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
+                Log in
+              </Link>
+              <div className="flex items-center justify-center rounded-full bg-card py-2 text-sm font-medium text-foreground shadow-sm">
+                Sign up
               </div>
-              <p className="pl-1 text-xs text-muted-foreground">
-                Must be at least 6 characters
-              </p>
             </div>
+          </CardHeader>
 
-            {/* Confirm Password */}
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="confirm-password"
-                className="text-sm font-medium text-foreground"
-              >
-                Confirm password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="confirm-password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                  disabled={loading}
-                  required
-                  className="h-11 rounded-full border-input px-4 pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  disabled={loading}
-                  className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-                  aria-label={
-                    showConfirmPassword ? "Hide password" : "Show password"
-                  }
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
+          <CardContent className="pt-4">
+            {error && (
+              <Alert variant="destructive" className="mb-4 rounded-xl">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Row 1: Full Name + Email */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="name"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Full name
+                  </Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="John Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={loading}
+                    required
+                    className="h-11 w-full rounded-full border-input px-4"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="email"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    required
+                    className="h-11 w-full rounded-full border-input px-4"
+                  />
+                </div>
               </div>
-              {confirmPassword && (
-                <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
-                  {passwordsMatch ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 shrink-0 text-green-500" />
-                      <span className="text-xs text-green-600 dark:text-green-400">
-                        Passwords match
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-                      <span className="text-xs text-red-600 dark:text-red-400">
-                        Passwords do not match
-                      </span>
-                    </>
+
+              {/* Row 2: Phone (full width) */}
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="phone"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Phone{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+1 (555) 000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={loading}
+                  className="h-11 w-full rounded-full border-input px-4"
+                />
+              </div>
+
+              {/* Row 3: Password + Confirm Password */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="password"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => handlePasswordChange(e.target.value)}
+                      disabled={loading}
+                      required
+                      className="h-11 w-full rounded-full border-input px-4 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={loading}
+                      className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="pl-1 text-xs text-muted-foreground">
+                    Min. 6 characters
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="confirm-password"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Confirm password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) =>
+                        handleConfirmPasswordChange(e.target.value)
+                      }
+                      disabled={loading}
+                      required
+                      className="h-11 w-full rounded-full border-input px-4 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      disabled={loading}
+                      className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                      aria-label={
+                        showConfirmPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  {confirmPassword && (
+                    <div className="flex items-center gap-1.5 rounded-xl bg-muted/50 px-3 py-2">
+                      {passwordsMatch ? (
+                        <>
+                          <CheckCircle className="h-3.5 w-3.5 shrink-0 text-green-500" />
+                          <span className="text-xs text-green-600 dark:text-green-400">
+                            Match
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-500" />
+                          <span className="text-xs text-red-600 dark:text-red-400">
+                            No match
+                          </span>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
 
-            <Button
-              type="submit"
-              className="h-11 w-full rounded-full bg-foreground text-sm font-medium text-background hover:bg-foreground/90"
-              disabled={loading || !passwordsMatch}
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <Spinner />
-                  <span>Creating account…</span>
-                </div>
-              ) : (
-                "Create account"
-              )}
-            </Button>
-          </form>
+              <Button
+                type="submit"
+                className="h-11 w-full rounded-full bg-foreground text-sm font-medium text-background hover:bg-foreground/90"
+                disabled={loading || !passwordsMatch}
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <Spinner />
+                    <span>Creating account…</span>
+                  </div>
+                ) : (
+                  "Create account"
+                )}
+              </Button>
+            </form>
+          </CardContent>
 
-          {/* Divider */}
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-3 text-muted-foreground">Or</span>
-            </div>
-          </div>
-
-          <Button
-            variant="outline"
-            type="button"
-            className="h-11 w-full rounded-full border-input text-sm font-medium hover:bg-muted"
-          >
-            <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            Continue with Google
-          </Button>
-        </div>
+          <CardFooter className="flex flex-col space-y-4 border-t pt-4">
+            <p className="text-center text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <Link
+                href="/auth/login"
+                className="font-semibold text-primary hover:underline"
+              >
+                Log in
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
           By creating an account, you agree to our{" "}
