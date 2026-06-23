@@ -93,13 +93,14 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => {
-                // Clear all auth cookies
-                document.cookie = "adminRole=; path=/; max-age=0"
-                document.cookie = "userRole=; path=/; max-age=0"
-                document.cookie = "userEmail=; path=/; max-age=0"
-                document.cookie = "userName=; path=/; max-age=0"
-                localStorage.removeItem("authUser")
+              onClick={async () => {
+                // Clear only admin localStorage entry — don't touch user session
+                localStorage.removeItem("authAdmin")
+                // Clear only admin cookies server-side
+                await fetch("/api/auth/logout?role=ADMIN", {
+                  method: "POST",
+                  credentials: "same-origin",
+                }).catch(() => {})
                 window.location.href = "/auth/admin-login"
               }}
             >

@@ -10,6 +10,55 @@ import { userService } from "@/src/container"
 import { InvalidCredentialsException } from "@/src/domain/exceptions/AppExceptions"
 import { Administrator } from "@/src/domain/models/User"
 
+// Cookie lifetime: 7 days in seconds
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60
+
+/**
+ * Set auth cookies on the response using server-side Set-Cookie headers.
+ *
+ * KEY DESIGN DECISION:
+ * - Admin login sets adminRole + adminEmail + adminName cookies ONLY.
+ * - User login sets userRole + userEmail + userName cookies ONLY.
+ * - Neither login touches the other role's cookies.
+ * - This allows admin and user to be simultaneously logged in from the
+ *   same browser (different tabs) without kicking each other out.
+ */
+function buildAuthResponse(
+  user: {
+    id: string
+    name: string
+    email: string
+    phone?: string
+    role: "ADMIN" | "USER"
+    createdAt: string
+  },
+  status = 200
+) {
+  const res = NextResponse.json({ user }, { status })
+
+  const cookieOpts = {
+    path: "/",
+    maxAge: COOKIE_MAX_AGE,
+    sameSite: "lax" as const,
+    httpOnly: false, // must be false so client JS can read for AuthContext
+    secure: false,   // localhost — no HTTPS
+  }
+
+  if (user.role === "ADMIN") {
+    // Set admin-specific cookies — do NOT touch userRole/userEmail/userName
+    res.cookies.set("adminRole", "ADMIN", cookieOpts)
+    res.cookies.set("adminEmail", user.email, cookieOpts)
+    res.cookies.set("adminName", user.name, cookieOpts)
+  } else {
+    // Set user-specific cookies — do NOT touch adminRole/adminEmail/adminName
+    res.cookies.set("userRole", "USER", cookieOpts)
+    res.cookies.set("userEmail", user.email, cookieOpts)
+    res.cookies.set("userName", user.name, cookieOpts)
+  }
+
+  return res
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { email, password, role } = await req.json()
@@ -47,15 +96,13 @@ export async function POST(req: NextRequest) {
         `[Login] Admin: ${adminModel.getInitials()} | canManageEvents: ${adminModel.canManageEvents()}`
       )
 
-      return NextResponse.json({
-        user: {
-          id: String(adminModel.id),
-          name: adminModel.name,
-          email: adminModel.email,
-          phone: adminModel.phone ?? undefined,
-          role: "ADMIN" as const,
-          createdAt: adminModel.createdAt.toISOString(),
-        },
+      return buildAuthResponse({
+        id: String(adminModel.id),
+        name: adminModel.name,
+        email: adminModel.email,
+        phone: adminModel.phone ?? undefined,
+        role: "ADMIN" as const,
+        createdAt: adminModel.createdAt.toISOString(),
       })
     } else {
       // ── User login: UserService → UserRepository ───────────────────────────
@@ -82,15 +129,13 @@ export async function POST(req: NextRequest) {
         await db.insert(participants).values({ userId: userDto.id })
       }
 
-      return NextResponse.json({
-        user: {
-          id: String(userDto.id),
-          name: userDto.name,
-          email: userDto.email,
-          phone: userDto.phone ?? undefined,
-          role: "USER" as const,
-          createdAt: userDto.createdAt.toISOString(),
-        },
+      return buildAuthResponse({
+        id: String(userDto.id),
+        name: userDto.name,
+        email: userDto.email,
+        phone: userDto.phone ?? undefined,
+        role: "USER" as const,
+        createdAt: userDto.createdAt.toISOString(),
       })
     }
   } catch (err) {

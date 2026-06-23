@@ -220,9 +220,16 @@ function CancelRegistrationDialog({ reg }: { reg: Registration }) {
 
   function handleCancel() {
     startTransition(async () => {
-      await deleteRegistration(parseInt(reg.id, 10))
-      setOpen(false)
-      router.refresh()
+      try {
+        await deleteRegistration(parseInt(reg.id, 10))
+        setOpen(false)
+        // Cookies are set server-side via Set-Cookie on login, so they are
+        // always valid when router.refresh() triggers a server re-render.
+        // No manual document.cookie manipulation needed here.
+        router.refresh()
+      } catch (err) {
+        console.error("Cancel registration failed:", err)
+      }
     })
   }
 

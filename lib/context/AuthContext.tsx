@@ -33,40 +33,38 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-function setCookie(name: string, value: string, days = 1) {
-  const isProduction = window.location.protocol === "https:"
-  const secure = isProduction ? "; Secure" : ""
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${
-    days * 86400
-  }; SameSite=Lax${secure}`
+/**
+ * Returns the correct localStorage key for a given role.
+ * Using separate keys prevents admin login from overwriting the user session
+ * and vice versa — which was the root cause of the cross-session logout bug.
+ */
+function storageKey(role: "ADMIN" | "USER") {
+  return role === "ADMIN" ? "authAdmin" : "authUser"
 }
 
-function clearCookie(name: string) {
-  document.cookie = `${name}=; path=/; max-age=0`
+/**
+ * Reads the stored user from localStorage.
+ * Tries both keys — whichever is populated is the active session.
+ * This is called once on mount; cookies are set by the server on login,
+ * so there is no need to touch document.cookie here.
+ */
+function readStoredUser(): User | null {
+  if (typeof window === "undefined") return null
+  for (const key of ["authUser", "authAdmin"] as const) {
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const parsed: User = JSON.parse(raw)
+      if (parsed?.email && parsed?.role) return parsed
+    } catch {
+      localStorage.removeItem(key)
+    }
+  }
+  return null
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    // Runs once on mount — safe to call localStorage here
-    if (typeof window === "undefined") return null
-    try {
-      const stored = localStorage.getItem("authUser")
-      if (!stored) return null
-      const parsed: User = JSON.parse(stored)
-      // Re-sync cookies in case they expired (e.g. browser restart)
-      setCookie("userEmail", parsed.email)
-      setCookie("userName", parsed.name)
-      if (parsed.role === "ADMIN") {
-        setCookie("adminRole", "ADMIN")
-      } else {
-        setCookie("userRole", "USER")
-      }
-      return parsed
-    } catch {
-      localStorage.removeItem("authUser")
-      return null
-    }
-  })
+  const [user, setUser] = useState<User | null>(() => readStoredUser())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -82,6 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // credentials: "same-origin" ensures Set-Cookie headers are applied
+        credentials: "same-origin",
         body: JSON.stringify({ email, password, role }),
       })
 
@@ -89,23 +89,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.ok) throw new Error(data.error || "Login failed")
 
       const loggedInUser: User = data.user
+
+      // Store in role-specific key so admin and user sessions don't collide
+      localStorage.setItem(storageKey(loggedInUser.role), JSON.stringify(loggedInUser))
+
+      // Clear the OTHER role's localStorage entry to avoid stale cross-role reads
+      localStorage.removeItem(storageKey(loggedInUser.role === "ADMIN" ? "USER" : "ADMIN"))
+
       setUser(loggedInUser)
-      localStorage.setItem("authUser", JSON.stringify(loggedInUser))
 
-      // Set cookies that middleware reads
-      setCookie("userEmail", loggedInUser.email)
-      setCookie("userName", loggedInUser.name)
-
-      if (role === "ADMIN") {
-        setCookie("adminRole", "ADMIN")
-        clearCookie("userRole")
-      } else {
-        setCookie("userRole", "USER")
-        clearCookie("adminRole")
-      }
-
-      // Small delay so cookies are written before middleware checks them
-      await new Promise((r) => setTimeout(r, 50))
+      // Cookies are already set by the server via Set-Cookie response headers.
+      // No document.cookie manipulation needed here.
       router.push(role === "ADMIN" ? "/admin" : "/user/dashboard")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Login failed"
@@ -146,12 +140,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => {
+    const role = user?.role ?? null
+
+    // Clear only this role's localStorage entry
+    if (role === "ADMIN") {
+      localStorage.removeItem("authAdmin")
+    } else if (role === "USER") {
+      localStorage.removeItem("authUser")
+    } else {
+      // Unknown role — clear both to be safe
+      localStorage.removeItem("authUser")
+      localStorage.removeItem("authAdmin")
+    }
+
+    // Clear only this role's server-side cookies
+    const query = role ? `?role=${role}` : ""
+    fetch(`/api/auth/logout${query}`, {
+      method: "POST",
+      credentials: "same-origin",
+    }).catch(() => {})
+
     setUser(null)
-    localStorage.removeItem("authUser")
-    clearCookie("userEmail")
-    clearCookie("userName")
-    clearCookie("userRole")
-    clearCookie("adminRole")
     router.push("/")
   }
 
