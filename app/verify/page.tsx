@@ -1,11 +1,11 @@
 import { CheckCircle2, Ticket as TicketIcon, Calendar, User, Hash, Users } from "lucide-react"
 
-export default function VerifyTicketPage({
+export default async function VerifyTicketPage({
   searchParams,
 }: {
-  searchParams: { ticket?: string; event?: string; name?: string; qty?: string }
+  searchParams: Promise<{ ticket?: string; event?: string; name?: string; qty?: string }>
 }) {
-  const { ticket, event, name, qty } = searchParams
+  const { ticket, event, name, qty } = await searchParams
 
   if (!ticket) {
     return (

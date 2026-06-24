@@ -86,9 +86,9 @@ export class RegistrationService {
     const ticketId = TicketFactory.generateId()
 
     // 7. Generate QR code as an actionable URL so Google Lens/Camera recognizes it properly
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     const qrPayload = `${baseUrl}/verify?ticket=${ticketId}&event=${encodeURIComponent(event.name)}&name=${encodeURIComponent(user.name)}&qty=${quantity}`
-    
+
     const qrCode = await QRCode.toDataURL(qrPayload, {
       errorCorrectionLevel: "M",
       type: "image/png",
@@ -137,9 +137,12 @@ export class RegistrationService {
     const participantName = participant?.user?.name ?? "Attendee"
 
     const ticket = TicketFactory.generateId()
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000'
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.APP_URL ||
+      "http://localhost:3000"
     const qrPayload = `${baseUrl}/verify?ticket=${ticket}&event=${encodeURIComponent(String(registration.eventId))}&name=${encodeURIComponent(participantName)}&qty=${(registration as any).quantity || 1}`
-    
+
     const qrCode = await QRCode.toDataURL(qrPayload, {
       errorCorrectionLevel: "M",
       type: "image/png",
