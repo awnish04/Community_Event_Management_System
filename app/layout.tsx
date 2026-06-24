@@ -1,6 +1,5 @@
 // app/layout.tsx
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/context/AuthContext"
 
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -24,14 +23,12 @@ export default function RootLayout({
         />
       </head>
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
-        <ThemeProvider>
           <AuthProvider>
             <TooltipProvider>
               <main className="flex w-full flex-1 flex-col">{children}</main>
               <Toaster position="top-center" richColors closeButton={false} />
             </TooltipProvider>
           </AuthProvider>
-        </ThemeProvider>
       </body>
     </html>
   )

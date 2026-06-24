@@ -1,7 +1,18 @@
 "use client"
 
 import { motion } from "motion/react"
-import { Puzzle, BarChart2 } from "lucide-react"
+import {
+  Puzzle,
+  BarChart2,
+  QrCode,
+  User,
+  Mic,
+  Wrench,
+  Gamepad2,
+  MapPin,
+  Calendar as CalendarIcon,
+  Users,
+} from "lucide-react"
 
 const features = [
   {
@@ -23,50 +34,14 @@ const features = [
     illustrationColor: "bg-[hsl(45,90%,92%)]",
   },
   {
-    title: "Your events, your profile",
+    title: "Digital Event Wallet",
     description:
-      "All your registrations, past and upcoming, in one place. Cancel, re-register, or explore similar events without any hassle.",
+      "Store all your event passes in one secure place. Quickly pull up QR codes for seamless check-in, manage your bookings, and look back at past events.",
     illustrationColor: "bg-[hsl(250,60%,94%)]",
   },
 ]
 
-// Real avatar URLs
-const AVATAR_URLS = [
-  "https://i.pravatar.cc/150?img=1",
-  "https://i.pravatar.cc/150?img=5",
-  "https://i.pravatar.cc/150?img=8",
-  "https://i.pravatar.cc/150?img=9",
-  "https://i.pravatar.cc/150?img=12",
-  "https://i.pravatar.cc/150?img=16",
-]
-
-// Logo URLs from CDN
-const LOGO_URLS = [
-  {
-    src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/slack-icon.svg",
-    name: "Slack",
-  },
-  {
-    src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/zoom-icon.svg",
-    name: "Zoom",
-  },
-  {
-    src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/hubspot.svg",
-    name: "HubSpot",
-  },
-  {
-    src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/mailchimp-freddie.svg",
-    name: "Mailchimp",
-  },
-  {
-    src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/google-calendar.svg",
-    name: "Calendar",
-  },
-  {
-    src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/stripe.svg",
-    name: "Stripe",
-  },
-]
+// (AVATAR_URLS removed as they are no longer needed)
 
 type BentoAccents = {
   integrationCircle: string
@@ -189,115 +164,116 @@ function IllustrationAnalytics({ accents }: { accents: BentoAccents }) {
 }
 
 function IllustrationIntegrations({ accents }: { accents: BentoAccents }) {
-  // Activities instead of random logos
   const activities = [
-    { emoji: "🎤", name: "Talk" },
-    { emoji: "🛠️", name: "Workshop" },
-    { emoji: "🎮", name: "Games" },
-    { emoji: "📍", name: "Venue A" },
-    { emoji: "🗓️", name: "Schedule" },
-    { emoji: "👥", name: "Networking" },
+    { Icon: Mic, name: "Talk", color: "text-blue-500" },
+    { Icon: Wrench, name: "Workshop", color: "text-orange-500" },
+    { Icon: Gamepad2, name: "Games", color: "text-purple-500" },
+    { Icon: MapPin, name: "Venue A", color: "text-red-500" },
+    { Icon: CalendarIcon, name: "Schedule", color: "text-emerald-500" },
+    { Icon: Users, name: "Networking", color: "text-pink-500" },
   ]
 
   return (
-    <div className="relative flex h-full w-full items-center justify-center p-6">
+    <div className="relative flex h-full w-full items-center justify-center p-6 overflow-hidden">
+      {/* Center piece */}
       <div
-        className="z-10 flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full"
+        className="z-10 flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full shadow-lg relative"
         style={{ backgroundColor: accents.integrationCircle }}
       >
         <Puzzle className="h-8 w-8 text-white" />
       </div>
-      {activities.map((act, i) => {
-        const angle = ((i * 60 - 90) * Math.PI) / 180
-        const r = 85
-        return (
-          <div
-            key={i}
-            className="absolute flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-xl bg-white/80 shadow-md dark:bg-card/85"
-            style={{
-              left: `calc(50% + ${Math.cos(angle) * r}px - 28px)`,
-              top: `calc(50% + ${Math.sin(angle) * r}px - 28px)`,
-            }}
-          >
-            <span className="text-base leading-none">{act.emoji}</span>
-            <span className="text-[7px] font-medium text-muted-foreground">
-              {act.name}
-            </span>
-          </div>
-        )
-      })}
+      
+      {/* Orbiting ring */}
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+      >
+        {activities.map((act, i) => {
+          const angle = ((i * 60 - 90) * Math.PI) / 180
+          const r = 85
+          return (
+            <div
+              key={i}
+              className="absolute pointer-events-auto"
+              style={{
+                left: `calc(50% + ${Math.cos(angle) * r}px - 28px)`,
+                top: `calc(50% + ${Math.sin(angle) * r}px - 28px)`,
+              }}
+            >
+              {/* Counter-rotate individual items so they stay upright */}
+              <motion.div
+                animate={{ rotate: -360 }}
+                transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                className="flex h-14 w-14 flex-col items-center justify-center gap-1 rounded-xl bg-white/90 shadow-md dark:bg-card/90"
+              >
+                <act.Icon className={`h-5 w-5 ${act.color}`} />
+                <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {act.name}
+                </span>
+              </motion.div>
+            </div>
+          )
+        })}
+      </motion.div>
     </div>
   )
 }
 
-function IllustrationAttendees({ accents }: { accents: BentoAccents }) {
+function IllustrationWallet({ accents }: { accents: BentoAccents }) {
   return (
-    <div className="relative flex h-full w-full items-center justify-center p-6">
-      <div className="w-[85%] space-y-2 rounded-xl bg-white/80 p-3 shadow-lg dark:bg-card/85">
-        <p className="mb-1 text-[10px] font-bold text-foreground">
-          Participants
-        </p>
-        {[
-          {
-            img: AVATAR_URLS[0],
-            name: "Sarah Chen",
-            event: "Tech Meetup",
-            status: "Approved",
-            statusColor: "hsl(170,60%,45%)",
-          },
-          {
-            img: AVATAR_URLS[1],
-            name: "Marcus Williams",
-            event: "Art Workshop",
-            status: "Pending",
-            statusColor: "hsl(45,90%,50%)",
-          },
-          {
-            img: AVATAR_URLS[2],
-            name: "Priya Patel",
-            event: "Community Run",
-            status: "Approved",
-            statusColor: "hsl(170,60%,45%)",
-          },
-          {
-            img: AVATAR_URLS[3],
-            name: "James Liu",
-            event: "Game Night",
-            status: "Cancelled",
-            statusColor: "hsl(0,70%,60%)",
-          },
-        ].map((p, i) => (
-          <div key={i} className="flex items-center gap-2">
+    <div className="relative flex h-full w-full items-center justify-center p-6 perspective-[1000px]">
+      <motion.div
+        animate={{ y: [0, -4, 0], rotateZ: [-2, 1, -2] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="w-[95%] flex overflow-hidden rounded-xl bg-white shadow-xl dark:bg-card border border-border"
+      >
+        {/* Main Ticket Body */}
+        <div className="flex-1 p-4 border-r-2 border-dashed border-muted relative bg-gradient-to-br from-white to-muted/20 dark:from-card dark:to-muted/10">
+          {/* Cutouts */}
+          <div className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-[hsl(250,60%,94%)] dark:bg-[hsl(250,30%,13%)] shadow-inner" />
+          <div className="absolute -bottom-3 -right-3 h-6 w-6 rounded-full bg-[hsl(250,60%,94%)] dark:bg-[hsl(250,30%,13%)] shadow-inner" />
+          
+          <div className="flex items-center gap-2 mb-4">
             <div
-              className="h-7 w-7 flex-shrink-0 overflow-hidden rounded-full border-2"
-              style={{ borderColor: accents.attendeeBorder }}
+              className="h-6 w-6 rounded-full flex items-center justify-center bg-primary/10"
+              style={{ color: accents.attendeeBorder }}
             >
-              <img
-                src={p.img}
-                alt={p.name}
-                className="h-full w-full object-cover"
-              />
+              <User className="h-3.5 w-3.5" />
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[9px] font-semibold text-foreground">
-                {p.name}
-              </p>
-              <p className="truncate text-[8px] text-muted-foreground">
-                {p.event}
-              </p>
+            <div className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">
+              Event Pass
             </div>
-            <span
-              className="flex-shrink-0 rounded-full px-1.5 py-0.5 text-[7px] font-semibold"
-              style={{
-                color: p.statusColor,
-                backgroundColor: `${p.statusColor}18`,
-              }}
-            >
-              {p.status}
+          </div>
+          
+          <h4 className="text-sm font-black leading-tight text-foreground mb-1.5">
+            Design Summit '26
+          </h4>
+          <p className="text-[9px] text-muted-foreground mb-4 font-medium">
+            Sat, Aug 12 • 10:00 AM
+          </p>
+
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-[8px] font-bold text-green-600 dark:text-green-400 border border-green-500/20">
+              Confirmed
+            </span>
+            <span className="text-[8px] text-muted-foreground font-medium hover:text-foreground transition-colors cursor-pointer">
+              Manage Booking &rarr;
             </span>
           </div>
-        ))}
-      </div>
+        </div>
+
+        {/* Ticket Stub */}
+        <div className="w-[32%] flex flex-col items-center justify-center p-3 bg-muted/30 relative">
+          <QrCode
+            className="h-10 w-10 mb-2 opacity-80"
+            style={{ color: accents.pageButton }}
+          />
+          <div className="text-[7px] text-muted-foreground uppercase tracking-widest text-center font-bold">
+            ADMIT ONE
+          </div>
+        </div>
+      </motion.div>
     </div>
   )
 }
@@ -306,7 +282,7 @@ const ILLUSTRATIONS = [
   IllustrationPages,
   IllustrationAnalytics,
   IllustrationIntegrations,
-  IllustrationAttendees,
+  IllustrationWallet,
 ]
 
 export function FeaturesSection({

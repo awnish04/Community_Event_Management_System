@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   Card,
@@ -217,15 +217,20 @@ function CancelRegistrationDialog({ reg }: { reg: Registration }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [canCancel, setCanCancel] = useState(true)
+
+  useEffect(() => {
+    const regTime = new Date(reg.registrationDate).getTime()
+    const diffHours = (Date.now() - regTime) / (1000 * 60 * 60)
+    setCanCancel(diffHours <= 12)
+  }, [reg.registrationDate])
 
   function handleCancel() {
+    if (!canCancel) return
     startTransition(async () => {
       try {
         await deleteRegistration(parseInt(reg.id, 10))
         setOpen(false)
-        // Cookies are set server-side via Set-Cookie on login, so they are
-        // always valid when router.refresh() triggers a server re-render.
-        // No manual document.cookie manipulation needed here.
         router.refresh()
       } catch (err) {
         console.error("Cancel registration failed:", err)
@@ -237,21 +242,27 @@ function CancelRegistrationDialog({ reg }: { reg: Registration }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <Tooltip>
         <TooltipTrigger
-          render={
+          
+        >
+          <div className="inline-block">
             <DialogTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              }
-            />
-          }
-        />
-        <TooltipContent>Cancel Registration</TooltipContent>
+              
+            >
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                disabled={!canCancel}
+                className={
+                  "text-destructive hover:bg-destructive/10 hover:text-destructive " +
+                  (!canCancel ? "opacity-50 cursor-not-allowed" : "")
+                }
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </DialogTrigger>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>{canCancel ? "Cancel Registration" : "Cannot cancel after 12 hours"}</TooltipContent>
       </Tooltip>
 
       <DialogContent className="sm:max-w-md">

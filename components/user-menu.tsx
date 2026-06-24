@@ -3,30 +3,30 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
-import {
-  LogOut,
-  LayoutDashboard,
-  Settings,
-  ChevronUp,
-  Home,
-} from "lucide-react"
+import { LogOut, LayoutDashboard, ChevronUp, Home } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/context/AuthContext"
-import { useRouter } from "next/navigation"
 
 interface UserMenuProps {
-  /** "avatar" (default) — small avatar button used in desktop navbar
-   *  "card" — full-width card row used in mobile menu or sidebar */
+  /**
+   * "avatar" (default) — small avatar button used in desktop navbar
+   * "card"            — full-width card row used in mobile menu or sidebar
+   */
   variant?: "avatar" | "card"
+  /**
+   * "nav"       — used in the main site navigation (shows Dashboard + Sign out)
+   * "dashboard" — used inside the user dashboard sidebar (shows Back to Home + Sign out)
+   * Defaults to "nav"
+   */
+  context?: "nav" | "dashboard"
 }
 
-export function UserMenu({ variant = "avatar" }: UserMenuProps) {
+export function UserMenu({ variant = "avatar", context = "nav" }: UserMenuProps) {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
@@ -47,7 +47,6 @@ export function UserMenu({ variant = "avatar" }: UserMenuProps) {
     toast.success("Signed out successfully")
   }
 
-  // Fallback to empty strings if user is null
   const name = user?.name || "User"
   const email = user?.email || ""
   const initials =
@@ -60,11 +59,10 @@ export function UserMenu({ variant = "avatar" }: UserMenuProps) {
 
   const close = () => setOpen(false)
 
-  // Dropdown position: above for card variant (mobile/sidebar), below for avatar (desktop)
   const dropdownClass =
     variant === "card"
       ? "absolute bottom-full left-0 right-0 mb-1 z-50 w-full rounded-xl border border-border bg-card shadow-xl overflow-hidden"
-      : "absolute right-0 top-10 z-50 w-56 rounded-xl border border-border bg-card shadow-xl overflow-hidden"
+      : "absolute right-0 top-10 z-50 w-60 rounded-xl border border-border bg-card shadow-xl overflow-hidden"
 
   return (
     <div ref={ref} className="relative flex w-full items-center">
@@ -136,18 +134,32 @@ export function UserMenu({ variant = "avatar" }: UserMenuProps) {
             </div>
           </div>
 
-          {/* Back to Home Button */}
+          {/* ── Context-dependent navigation link ── */}
           <div className="py-1">
-            <Link
-              href="/"
-              onClick={close}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
-            >
-              <Home className="size-4 text-muted-foreground" />
-              Back to Home
-            </Link>
+            {context === "nav" ? (
+              /* Nav context: show Dashboard link */
+              <Link
+                href="/user/dashboard"
+                onClick={close}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+              >
+                <LayoutDashboard className="size-4 text-muted-foreground" />
+                Dashboard
+              </Link>
+            ) : (
+              /* Dashboard context: show Back to Home link */
+              <Link
+                href="/"
+                onClick={close}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+              >
+                <Home className="size-4 text-muted-foreground" />
+                Back to Home
+              </Link>
+            )}
           </div>
-          {/* Sign out */}
+
+          {/* ── Sign out ── */}
           <div className="border-t border-border py-1">
             <button
               onClick={handleSignOut}

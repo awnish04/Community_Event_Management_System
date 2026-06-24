@@ -11,7 +11,6 @@ const pageTitles: Record<string, string> = {
   "/admin/participants": "Participants",
   "/admin/venues": "Venues",
   "/admin/activities": "Activities",
-  "/admin/settings": "Settings",
 }
 
 export function SiteHeader() {

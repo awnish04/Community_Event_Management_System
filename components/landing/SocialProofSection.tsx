@@ -9,30 +9,22 @@ export function SocialProofSection({ titleWeight }: { titleWeight: number }) {
     {
       quote:
         "I set up our neighbourhood cleanup event in under 10 minutes — venue, activities, capacity limit, all done. Used to take me half a day.",
-      name: "Sarah Chen",
       role: "Community manager",
-      avatar: "/assets/avatar-sarah.jpg",
     },
     {
       quote:
         "No more spreadsheets. I approve registrations, track cancellations, and message attendees from one screen. It's night and day.",
-      name: "Marcus Williams",
       role: "Event coordinator",
-      avatar: "/assets/avatar-marcus.jpg",
     },
     {
       quote:
         "Double bookings used to be my worst nightmare. Now the venue capacity system catches conflicts before they happen. Total peace of mind.",
-      name: "Priya Patel",
       role: "Venue administrator",
-      avatar: "/assets/avatar-priya.jpg",
     },
     {
       quote:
         "Our last meetup had the highest turnout ever. Attendees could filter by activity, register instantly, and actually showed up prepared.",
-      name: "James Liu",
       role: "Tech meetup organizer",
-      avatar: "https://i.pravatar.cc/300?img=33",
     },
   ]
 
@@ -69,13 +61,6 @@ export function SocialProofSection({ titleWeight }: { titleWeight: number }) {
               className="h-full"
             >
               <Card className="flex h-full flex-col overflow-hidden rounded-2xl border-0 p-0 shadow-sm">
-                <div className="h-[180px] flex-shrink-0 overflow-hidden">
-                  <img
-                    src={testimonial.avatar}
-                    alt={testimonial.role}
-                    className="h-full w-full object-cover object-center"
-                  />
-                </div>
                 <CardContent className="flex flex-1 flex-col p-6">
                   <div className="mb-4 flex flex-shrink-0 gap-0.5">
                     {[...Array(5)].map((_, j) => (

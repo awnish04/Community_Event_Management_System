@@ -18,9 +18,8 @@ import {
   Users,
   MapPin,
   Activity,
-  Settings,
-  type LucideIcon,
 } from "lucide-react"
+import { type LucideIcon } from "lucide-react"
 import { NavUser } from "./nav-user"
 
 const navItems: { title: string; url: string; icon: LucideIcon }[] = [
@@ -92,27 +91,8 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarContent>
 
-      {/* Footer: Settings + User */}
+      {/* Footer: User */}
       <SidebarFooter className="px-2 py-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={pathname === "/admin/settings"}
-              tooltip="Settings"
-              className={
-                pathname === "/admin/settings"
-                  ? "bg-primary! text-white! hover:bg-primary/90! hover:text-white! [&>svg]:text-white!"
-                  : "hover:bg-sidebar-accent"
-              }
-              onClick={() => {
-                window.location.href = "/admin/settings"
-              }}
-            >
-              <Settings className="size-4" />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
         <NavUser user={resolvedUser} />
       </SidebarFooter>
     </Sidebar>

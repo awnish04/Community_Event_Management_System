@@ -214,42 +214,61 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
           filteredEvents.map((event) => (
             <Card
               key={event.id}
-              className="flex flex-col shadow-sm transition-all hover:shadow-md"
+              className="relative flex flex-col overflow-hidden pt-0 shadow-sm transition-all hover:shadow-md"
             >
+              {event.userRegistrationStatus && (
+                <div className="absolute right-3 top-3 z-10">
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-200/60 bg-emerald-50 px-3 py-1 text-sm font-semibold shadow-none dark:border-emerald-800/50 dark:bg-emerald-950/20 dark:text-emerald-400"
+                  >
+                    Registered
+                  </Badge>
+                </div>
+              )}
+              {event.imageUrl && (
+                <div className="relative h-48 w-full overflow-hidden border-b">
+                  <img
+                    src={event.imageUrl}
+                    alt={event.name}
+                    className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                  />
+                </div>
+              )}
+
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
-                    <CardTitle className="line-clamp-2">{event.name}</CardTitle>
-                    <CardDescription className="mt-1 line-clamp-2">
+                    <CardTitle className="line-clamp-2 text-lg font-bold md:text-xl">
+                      {event.name}
+                    </CardTitle>
+                    <CardDescription className="mt-2 line-clamp-2 text-base">
                       {event.description}
                     </CardDescription>
                   </div>
-                  {event.userRegistrationStatus && (
-                    <Badge
-                      variant="outline"
-                      className="shrink-0 border-emerald-200/60 bg-emerald-50 px-2.5 py-0.5 font-semibold shadow-none dark:border-emerald-800/50 dark:bg-emerald-950/20 dark:text-emerald-400"
-                    >
-                      Registered
-                    </Badge>
-                  )}
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 space-y-4">
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
+              <CardContent className="flex-1 space-y-5">
+                <div className="space-y-3 text-base text-muted-foreground">
+                  <div className="flex items-center gap-3 rounded-lg bg-primary/10 p-3 font-semibold text-primary shadow-sm">
+                    <Calendar className="h-5 w-5" />
                     <span>
-                      {new Date(event.eventDate).toLocaleDateString()} at{" "}
-                      {event.eventTime}
+                      {new Date(event.eventDate).toLocaleDateString(undefined, {
+                        weekday: "short",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}{" "}
+                      at {event.eventTime}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>{event.venue.name}</span>
+                  <div className="flex items-center gap-3 px-1">
+                    <MapPin className="h-5 w-5" />
+                    <span className="font-medium">{event.venue.name}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span>
+                  <div className="flex items-center gap-3 px-1">
+                    <Users className="h-5 w-5" />
+                    <span className="font-medium">
                       {event.currentRegistrations}/{event.capacity} registered
                     </span>
                   </div>

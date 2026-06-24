@@ -6,9 +6,7 @@ import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
 import { Calendar, Sun, Moon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { Button } from "@/components/ui/button"
-import { useTheme } from "next-themes"
 import { useAuth } from "@/lib/context/AuthContext"
 import { UserMenu } from "@/components/user-menu"
 
@@ -79,7 +77,6 @@ export function Navigation() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
   const pathname = usePathname() || "/"
-  const { theme, setTheme } = useTheme()
   const [, startTransition] = useTransition()
   const { isAuthenticated, user } = useAuth()
   const isClient = useIsClient()
@@ -188,13 +185,9 @@ export function Navigation() {
           <div className="flex items-center justify-end gap-2">
             {/* Desktop only: theme toggle + auth */}
             <div className="hidden items-center gap-3 md:flex">
-              <AnimatedThemeToggler
-                variant="circle"
-                className="flex items-center justify-center rounded-full border border-border bg-muted p-2 text-foreground transition-colors hover:bg-muted/80 [&_svg]:size-4"
-              />
               <div className="flex items-center gap-2">
                 {isClient && isAuthenticated && user?.role === "USER" ? (
-                  <UserMenu variant="avatar" />
+                  <UserMenu variant="avatar" context="nav" />
                 ) : !isClient || !isAuthenticated || user?.role !== "USER" ? (
                   <>
                     <Link href="/auth/login">
@@ -275,7 +268,6 @@ export function Navigation() {
                   </motion.div>
                 ))}
 
-                {/* Auth + theme section */}
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -287,37 +279,10 @@ export function Navigation() {
                   }}
                   className="mt-4 flex w-full max-w-xs flex-col gap-2 border-t border-border pt-4"
                 >
-                  {/* Inline theme switcher — Sun / Moon pill */}
-                  <div className="mx-1 mt-1 mb-4 flex items-center gap-1 border border-border bg-muted p-1">
-                    <button
-                      onClick={() => setTheme("light")}
-                      aria-label="Light mode"
-                      className={cn(
-                        "flex flex-1 items-center justify-center py-2 transition-colors",
-                        theme === "light"
-                          ? "bg-background text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <Sun className="size-4" aria-hidden />
-                    </button>
-                    <button
-                      onClick={() => setTheme("dark")}
-                      aria-label="Dark mode"
-                      className={cn(
-                        "flex flex-1 items-center justify-center py-2 transition-colors",
-                        theme === "dark"
-                          ? "bg-background text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <Moon className="size-4" aria-hidden />
-                    </button>
-                  </div>
 
                   {isClient && isAuthenticated && user?.role === "USER" ? (
                     <div className="w-full">
-                      <UserMenu variant="card" />
+                      <UserMenu variant="card" context="nav" />
                     </div>
                   ) : !isClient || !isAuthenticated || user?.role !== "USER" ? (
                     <>

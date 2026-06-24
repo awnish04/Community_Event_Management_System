@@ -88,7 +88,7 @@ export function UserSidebar({
 
       {/* Footer: User */}
       <SidebarFooter className="px-2 py-2">
-        <UserMenu variant="card" />
+        <UserMenu variant="card" context="dashboard" />
       </SidebarFooter>
     </Sidebar>
   )

@@ -63,6 +63,7 @@ export async function getDiscoverEvents(email: string) {
         eventDate: events.eventDate,
         eventTime: events.eventTime,
         capacity: events.capacity,
+        imageUrl: events.imageUrl,
         venueName: venues.name,
         venueId: venues.id,
       })
@@ -134,6 +135,7 @@ export async function getDiscoverEvents(email: string) {
         eventDate: e.eventDate.toISOString().split("T")[0], // Keep as YYYY-MM-DD
         eventTime: e.eventTime,
         capacity: e.capacity,
+        imageUrl: e.imageUrl,
         currentRegistrations: registered,
         isFull: registered >= e.capacity,
         venue: { id: String(e.venueId), name: e.venueName || "TBA" },

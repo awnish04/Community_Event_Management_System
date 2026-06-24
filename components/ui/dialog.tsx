@@ -11,7 +11,13 @@ function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
+type DialogTriggerProps = DialogPrimitive.Trigger.Props & {
+  /** When true, the child element becomes the trigger element itself */
+  asChild?: boolean
+}
+
+function DialogTrigger(props: any) {
+  // Accept any props including asChild for compatibility
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 }
 
