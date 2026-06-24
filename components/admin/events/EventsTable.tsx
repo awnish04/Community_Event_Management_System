@@ -43,6 +43,7 @@ import {
   ChevronDown,
   Clock,
   Calendar as CalendarIcon,
+  AlertCircle,
 } from "lucide-react"
 
 import { createEvent, editEvent, deleteEvent, cancelEvent } from "@/app/actions/events"
@@ -58,6 +59,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group"
 
 interface Event {
   id: number
@@ -99,12 +101,32 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
   const [activityName, setActivityName] = useState<string>("")
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  function clearFieldError(field: string) {
+    setFormErrors((prev) => { const next = { ...prev }; delete next[field]; return next })
+  }
+
+  function validateCreate(formData: FormData): Record<string, string> {
+    const errors: Record<string, string> = {}
+    const name = (formData.get("name") as string)?.trim()
+    const description = (formData.get("description") as string)?.trim()
+    if (!name) errors.name = "Event name is required"
+    else if (name.length < 3) errors.name = "Name must be at least 3 characters"
+    if (!description) errors.description = "Description is required"
+    else if (description.length < 10) errors.description = "Description must be at least 10 characters"
+    if (!selectedDate) errors.date = "Please select an event date"
+    else if (selectedDate < new Date(new Date().setHours(0,0,0,0))) errors.date = "Event date must be in the future"
+    if (!selectedTime) errors.time = "Please select an event time"
+    return errors
+  }
 
   function handleOpenChange(val: boolean) {
     if (!isPending) {
       setOpen(val)
       if (!val) {
         setError(null)
+        setFormErrors({})
         setDatePickerOpen(false)
         setSelectedDate(undefined)
         setSelectedTime("10:00")
@@ -123,6 +145,12 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
     e.preventDefault()
     setError(null)
     const formData = new FormData(e.currentTarget)
+    const errors = validateCreate(formData)
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
+      return
+    }
+    setFormErrors({})
     if (venueId) formData.set("venueId", venueId)
     if (imageUrl) formData.set("imageUrl", imageUrl)
 
@@ -168,9 +196,20 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
               id="ev-name"
               name="name"
               placeholder="e.g. Summer Community Meetup"
-              required
               autoFocus
+              onChange={() => clearFieldError("name")}
+              className={
+                formErrors.name
+                  ? "border-destructive ring-1 ring-destructive"
+                  : ""
+              }
             />
+            {formErrors.name && (
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                {formErrors.name}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -180,8 +219,19 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
               name="description"
               placeholder="Describe what attendees can expect..."
               rows={3}
-              required
+              onChange={() => clearFieldError("description")}
+              className={
+                formErrors.description
+                  ? "border-destructive ring-1 ring-destructive"
+                  : ""
+              }
             />
+            {formErrors.description && (
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                {formErrors.description}
+              </p>
+            )}
           </div>
 
           {/* Hidden inputs submitted to server action */}
@@ -205,7 +255,7 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
                       type="button"
                       variant="outline"
                       id="ev-date"
-                      className="w-full justify-between font-normal"
+                      className={`w-full justify-between font-normal ${formErrors.date ? "border-destructive ring-1 ring-destructive" : ""}`}
                     />
                   }
                 >
@@ -228,10 +278,17 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
                     onSelect={(d) => {
                       setSelectedDate(d)
                       setDatePickerOpen(false)
+                      clearFieldError("date")
                     }}
                   />
                 </PopoverContent>
               </Popover>
+              {formErrors.date && (
+                <p className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
+                  {formErrors.date}
+                </p>
+              )}
             </div>
 
             {/* Time picker */}
@@ -243,11 +300,20 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
                   type="time"
                   id="ev-time-create"
                   value={selectedTime}
-                  onChange={(e) => setSelectedTime(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedTime(e.target.value)
+                    clearFieldError("time")
+                  }}
                   className="w-full appearance-none pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                   required
                 />
               </div>
+              {formErrors.time && (
+                <p className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
+                  {formErrors.time}
+                </p>
+              )}
             </div>
           </div>
 
@@ -263,64 +329,52 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
             onUploadEnd={() => setIsUploadingImage(false)}
           />
 
+          {/* Venue + Capacity as an attached button-group row */}
           <div className="space-y-1.5">
             <Label htmlFor="ev-venue">
               Venue{" "}
-              <span className="font-normal text-muted-foreground">
-                (optional)
-              </span>
+              <span className="font-normal text-muted-foreground">(optional)</span>
             </Label>
-            <Select
-              value={venueId}
-              onValueChange={(val) => {
-                setVenueId(val ?? "")
-                const found = venues.find((v) => String(v.id) === val)
-                if (found) {
-                  setVenueName(found.name)
-                  setVenueCapacity(found.capacity)
-                } else {
-                  setVenueName("")
-                  setVenueCapacity(null)
-                }
-              }}
-            >
-              <SelectTrigger id="ev-venue" className="w-full">
-                <SelectValue>
-                  {venueName || (
-                    <span className="text-muted-foreground">
-                      Select a venue...
-                    </span>
-                  )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="w-full">
-                {venues.length === 0 ? (
-                  <SelectItem value="_none" disabled>
-                    No venues yet — add one first
-                  </SelectItem>
-                ) : (
-                  venues.map((v) => (
-                    <SelectItem key={v.id} value={String(v.id)}>
-                      {v.name} (cap. {v.capacity})
+            <ButtonGroup className="w-full">
+              <Select
+                value={venueId}
+                onValueChange={(val) => {
+                  setVenueId(val ?? "")
+                  const found = venues.find((v) => String(v.id) === val)
+                  if (found) {
+                    setVenueName(found.name)
+                    setVenueCapacity(found.capacity)
+                  } else {
+                    setVenueName("")
+                    setVenueCapacity(null)
+                  }
+                }}
+              >
+                <SelectTrigger id="ev-venue" className="flex-1 rounded-r-none">
+                  <SelectValue>
+                    {venueName || (
+                      <span className="text-muted-foreground">Select a venue...</span>
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {venues.length === 0 ? (
+                    <SelectItem value="_none" disabled>
+                      No venues yet — add one first
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Capacity display — auto-derived from selected venue */}
-          <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Capacity:</span>
-            {venueCapacity !== null ? (
-              <span className="font-semibold text-foreground">
-                {venueCapacity} seats
-              </span>
-            ) : (
-              <span className="text-muted-foreground italic">
-                Select a venue to set capacity automatically
-              </span>
-            )}
+                  ) : (
+                    venues.map((v) => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        {v.name} (cap. {v.capacity})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <ButtonGroupText className="shrink-0 rounded-l-none border-l-0 px-4 text-sm font-semibold">
+                {venueCapacity !== null ? `${venueCapacity} seats` : "— seats"}
+              </ButtonGroupText>
+            </ButtonGroup>
           </div>
 
           <div className="space-y-1.5">
@@ -398,6 +452,7 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   const [venueId, setVenueId] = useState<string>("")
   const [venueName, setVenueName] = useState<string>("")
@@ -410,11 +465,29 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [selectedTime, setSelectedTime] = useState<string>("10:00")
 
+  function clearFieldError(field: string) {
+    setFormErrors((prev) => { const next = { ...prev }; delete next[field]; return next })
+  }
+
+  function validateEdit(formData: FormData): Record<string, string> {
+    const errors: Record<string, string> = {}
+    const name = (formData.get("name") as string)?.trim()
+    const description = (formData.get("description") as string)?.trim()
+    if (!name) errors.name = "Event name is required"
+    else if (name.length < 3) errors.name = "Name must be at least 3 characters"
+    if (!description) errors.description = "Description is required"
+    else if (description.length < 10) errors.description = "Description must be at least 10 characters"
+    if (!selectedDate) errors.date = "Please select an event date"
+    if (!selectedTime) errors.time = "Please select an event time"
+    return errors
+  }
+
   function handleOpenChange(val: boolean) {
     if (!isPending) {
       setOpen(val)
       if (!val) {
         setError(null)
+        setFormErrors({})
         setDatePickerOpen(false)
       } else {
         setImageUrl(event.imageUrl || null)
@@ -438,6 +511,12 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
     e.preventDefault()
     setError(null)
     const formData = new FormData(e.currentTarget)
+    const errors = validateEdit(formData)
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
+      return
+    }
+    setFormErrors({})
     if (venueId) formData.set("venueId", venueId)
     if (imageUrl) formData.set("imageUrl", imageUrl)
 
@@ -490,8 +569,15 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
               id={`ev-name-${event.id}`}
               name="name"
               defaultValue={event.name}
-              required
+              onChange={() => clearFieldError("name")}
+              className={formErrors.name ? "border-destructive ring-1 ring-destructive" : ""}
             />
+            {formErrors.name && (
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                {formErrors.name}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -501,8 +587,15 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
               name="description"
               defaultValue={event.description}
               rows={3}
-              required
+              onChange={() => clearFieldError("description")}
+              className={formErrors.description ? "border-destructive ring-1 ring-destructive" : ""}
             />
+            {formErrors.description && (
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                {formErrors.description}
+              </p>
+            )}
           </div>
 
           {/* Hidden inputs submitted to server action */}
@@ -526,7 +619,7 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
                       type="button"
                       variant="outline"
                       id={`ev-date-${event.id}`}
-                      className="w-full justify-between font-normal"
+                      className={`w-full justify-between font-normal ${formErrors.date ? "border-destructive ring-1 ring-destructive" : ""}`}
                     />
                   }
                 >
@@ -549,10 +642,17 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
                     onSelect={(d) => {
                       setSelectedDate(d)
                       setDatePickerOpen(false)
+                      clearFieldError("date")
                     }}
                   />
                 </PopoverContent>
               </Popover>
+              {formErrors.date && (
+                <p className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
+                  {formErrors.date}
+                </p>
+              )}
             </div>
 
             {/* Time picker */}
@@ -564,11 +664,17 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
                   type="time"
                   id={`ev-time-${event.id}`}
                   value={selectedTime}
-                  onChange={(e) => setSelectedTime(e.target.value)}
+                  onChange={(e) => { setSelectedTime(e.target.value); clearFieldError("time") }}
                   className="w-full appearance-none pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                   required
                 />
               </div>
+              {formErrors.time && (
+                <p className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
+                  {formErrors.time}
+                </p>
+              )}
             </div>
           </div>
 
@@ -586,60 +692,52 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
             onUploadEnd={() => setIsUploadingImage(false)}
           />
 
+          {/* Venue + Capacity as an attached button-group row */}
           <div className="space-y-1.5">
             <Label htmlFor={`ev-venue-${event.id}`}>
               Venue{" "}
-              <span className="font-normal text-muted-foreground">
-                (optional)
-              </span>
+              <span className="font-normal text-muted-foreground">(optional)</span>
             </Label>
-            <Select
-              value={venueId}
-              onValueChange={(val) => {
-                setVenueId(val ?? "")
-                const found = venues.find((v) => String(v.id) === val)
-                if (found) {
-                  setVenueName(found.name)
-                  setVenueCapacity(found.capacity)
-                } else {
-                  setVenueName("")
-                  setVenueCapacity(null)
-                }
-              }}
-            >
-              <SelectTrigger id={`ev-venue-${event.id}`} className="w-full">
-                <SelectValue>
-                  {venueName || (
-                    <span className="text-muted-foreground">
-                      Select a venue...
-                    </span>
-                  )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="w-full">
-                {venues.length === 0 ? (
-                  <SelectItem value="_none" disabled>
-                    No venues yet — add one first
-                  </SelectItem>
-                ) : (
-                  venues.map((v) => (
-                    <SelectItem key={v.id} value={String(v.id)}>
-                      {v.name} (cap. {v.capacity})
+            <ButtonGroup className="w-full">
+              <Select
+                value={venueId}
+                onValueChange={(val) => {
+                  setVenueId(val ?? "")
+                  const found = venues.find((v) => String(v.id) === val)
+                  if (found) {
+                    setVenueName(found.name)
+                    setVenueCapacity(found.capacity)
+                  } else {
+                    setVenueName("")
+                    setVenueCapacity(null)
+                  }
+                }}
+              >
+                <SelectTrigger id={`ev-venue-${event.id}`} className="flex-1 rounded-r-none">
+                  <SelectValue>
+                    {venueName || (
+                      <span className="text-muted-foreground">Select a venue...</span>
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="w-full">
+                  {venues.length === 0 ? (
+                    <SelectItem value="_none" disabled>
+                      No venues yet — add one first
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Capacity display — auto-derived from selected venue */}
-          <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Capacity:</span>
-            {venueCapacity !== null ? (
-              <span className="font-semibold text-foreground">{venueCapacity} seats</span>
-            ) : (
-              <span className="italic text-muted-foreground">Select a venue to set capacity automatically</span>
-            )}
+                  ) : (
+                    venues.map((v) => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        {v.name} (cap. {v.capacity})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <ButtonGroupText className="shrink-0 rounded-l-none border-l-0 px-4 text-sm font-semibold">
+                {venueCapacity !== null ? `${venueCapacity} seats` : "— seats"}
+              </ButtonGroupText>
+            </ButtonGroup>
           </div>
 
           <div className="space-y-1.5">

@@ -17,19 +17,36 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [formErrors, setFormErrors] = useState<{ email?: string; password?: string }>({})
   const { login } = useAuth()
+
+  const validate = () => {
+    const errors: { email?: string; password?: string } = {}
+    if (!email) {
+      errors.email = "Email is required"
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      errors.email = "Please enter a valid email address"
+    }
+    
+    if (!password) {
+      errors.password = "Password is required"
+    }
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    
+    if (!validate()) {
+      return
+    }
+    
     setLoading(true)
 
     try {
-      if (!email || !password) {
-        setError("Please fill in all fields")
-        setLoading(false)
-        return
-      }
       await login(email, password, "USER")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed")
@@ -113,11 +130,16 @@ export default function LoginPage() {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); if (formErrors.email) setFormErrors(p => ({ ...p, email: undefined })) }}
                   disabled={loading}
-                  required
-                  className="h-11 rounded-full border-input px-4"
+                  className={`h-11 rounded-full border-input px-4 ${formErrors.email ? "border-destructive ring-1 ring-destructive" : ""}`}
                 />
+                {formErrors.email && (
+                  <p className="flex items-center gap-1 pl-1 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {formErrors.email}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -133,10 +155,9 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); if (formErrors.password) setFormErrors(p => ({ ...p, password: undefined })) }}
                     disabled={loading}
-                    required
-                    className="h-11 rounded-full border-input px-4 pr-12"
+                    className={`h-11 rounded-full border-input px-4 pr-12 ${formErrors.password ? "border-destructive ring-1 ring-destructive" : ""}`}
                   />
                   <button
                     type="button"
@@ -154,6 +175,12 @@ export default function LoginPage() {
                     )}
                   </button>
                 </div>
+                {formErrors.password && (
+                  <p className="flex items-center gap-1 pl-1 text-xs text-destructive">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {formErrors.password}
+                  </p>
+                )}
               </div>
 
               <Button

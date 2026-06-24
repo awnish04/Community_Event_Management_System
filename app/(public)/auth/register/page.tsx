@@ -13,50 +13,71 @@ import { Calendar, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/lib/context/AuthContext"
 import { toast } from "sonner"
 
+type FormErrors = {
+  name?: string
+  email?: string
+  password?: string
+  confirmPassword?: string
+}
+
 export default function RegisterPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [passwordsMatch, setPasswordsMatch] = useState(true)
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
   const { register } = useAuth()
   const router = useRouter()
 
-  const handlePasswordChange = (value: string) => {
-    setPassword(value)
-    if (confirmPassword) setPasswordsMatch(value === confirmPassword)
+  const clearFieldError = (field: keyof FormErrors) =>
+    setFormErrors((prev) => ({ ...prev, [field]: undefined }))
+
+  const validate = (): boolean => {
+    const errors: FormErrors = {}
+
+    if (!name.trim()) {
+      errors.name = "Full name is required"
+    } else if (name.trim().length < 2) {
+      errors.name = "Name must be at least 2 characters"
+    }
+
+    if (!email) {
+      errors.email = "Email is required"
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      errors.email = "Please enter a valid email address"
+    }
+
+    if (!password) {
+      errors.password = "Password is required"
+    } else if (password.length < 6) {
+      errors.password = "Password must be at least 6 characters"
+    }
+
+    if (!confirmPassword) {
+      errors.confirmPassword = "Please confirm your password"
+    } else if (password !== confirmPassword) {
+      errors.confirmPassword = "Passwords do not match"
+    }
+
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
-  const handleConfirmPasswordChange = (value: string) => {
-    setConfirmPassword(value)
-    setPasswordsMatch(password === value)
-  }
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    if (!name || !email || !password || !confirmPassword) {
-      setError("Please fill in all required fields")
-      return
-    }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters")
-      return
-    }
-    if (!passwordsMatch) {
-      setError("Passwords do not match")
-      return
-    }
+    if (!validate()) return
 
     setLoading(true)
     try {
-      await register(name, email, password, phone || undefined)
+      await register(name, email, password, undefined)
       toast.success("Account created successfully!", {
         description: "Please log in with your credentials.",
       })
@@ -147,11 +168,19 @@ export default function RegisterPage() {
                     type="text"
                     placeholder="John Doe"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value)
+                      clearFieldError("name")
+                    }}
                     disabled={loading}
-                    required
-                    className="h-11 w-full rounded-full border-input px-4"
+                    className={`h-11 w-full rounded-full border-input px-4 ${formErrors.name ? "border-destructive ring-1 ring-destructive" : ""}`}
                   />
+                  {formErrors.name && (
+                    <p className="flex items-center gap-1 pl-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      {formErrors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -166,37 +195,23 @@ export default function RegisterPage() {
                     type="email"
                     placeholder="you@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      clearFieldError("email")
+                    }}
                     disabled={loading}
-                    required
-                    className="h-11 w-full rounded-full border-input px-4"
+                    className={`h-11 w-full rounded-full border-input px-4 ${formErrors.email ? "border-destructive ring-1 ring-destructive" : ""}`}
                   />
+                  {formErrors.email && (
+                    <p className="flex items-center gap-1 pl-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      {formErrors.email}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Row 2: Phone (full width) */}
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="phone"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Phone{" "}
-                  <span className="font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+1 (555) 000-0000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={loading}
-                  className="h-11 w-full rounded-full border-input px-4"
-                />
-              </div>
-
-              {/* Row 3: Password + Confirm Password */}
+              {/* Row 2: Password + Confirm Password */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label
@@ -211,10 +226,13 @@ export default function RegisterPage() {
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
                       value={password}
-                      onChange={(e) => handlePasswordChange(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        clearFieldError("password")
+                        if (confirmPassword) clearFieldError("confirmPassword")
+                      }}
                       disabled={loading}
-                      required
-                      className="h-11 w-full rounded-full border-input px-4 pr-12"
+                      className={`h-11 w-full rounded-full border-input px-4 pr-12 ${formErrors.password ? "border-destructive ring-1 ring-destructive" : ""}`}
                     />
                     <button
                       type="button"
@@ -232,9 +250,16 @@ export default function RegisterPage() {
                       )}
                     </button>
                   </div>
-                  <p className="pl-1 text-xs text-muted-foreground">
-                    Min. 6 characters
-                  </p>
+                  {formErrors.password ? (
+                    <p className="flex items-center gap-1 pl-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      {formErrors.password}
+                    </p>
+                  ) : (
+                    <p className="pl-1 text-xs text-muted-foreground">
+                      Min. 6 characters
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -250,12 +275,12 @@ export default function RegisterPage() {
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="••••••••"
                       value={confirmPassword}
-                      onChange={(e) =>
-                        handleConfirmPasswordChange(e.target.value)
-                      }
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value)
+                        clearFieldError("confirmPassword")
+                      }}
                       disabled={loading}
-                      required
-                      className="h-11 w-full rounded-full border-input px-4 pr-12"
+                      className={`h-11 w-full rounded-full border-input px-4 pr-12 ${formErrors.confirmPassword ? "border-destructive ring-1 ring-destructive" : ""}`}
                     />
                     <button
                       type="button"
@@ -275,7 +300,12 @@ export default function RegisterPage() {
                       )}
                     </button>
                   </div>
-                  {confirmPassword && (
+                  {formErrors.confirmPassword ? (
+                    <p className="flex items-center gap-1 pl-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      {formErrors.confirmPassword}
+                    </p>
+                  ) : confirmPassword && (
                     <div className="flex items-center gap-1.5 rounded-xl bg-muted/50 px-3 py-2">
                       {passwordsMatch ? (
                         <>
@@ -300,7 +330,7 @@ export default function RegisterPage() {
               <Button
                 type="submit"
                 className="h-11 w-full rounded-full bg-foreground text-sm font-medium text-background hover:bg-foreground/90"
-                disabled={loading || !passwordsMatch}
+                disabled={loading}
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
