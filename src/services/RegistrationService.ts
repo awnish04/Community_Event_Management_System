@@ -46,7 +46,8 @@ export class RegistrationService {
 
   async registerForEvent(
     userEmail: string,
-    eventId: number
+    eventId: number,
+    quantity: number = 1
   ): Promise<{ registration: RegistrationDto; ticketId: string }> {
     // 1. Validate event exists
     const event = await this.eventRepo.getById(eventId)
@@ -78,21 +79,17 @@ export class RegistrationService {
     // 5. Check capacity — throws typed exception
     const confirmedCount =
       await this.registrationRepo.countConfirmedForEvent(eventId)
-    if (confirmedCount >= event.capacity)
+    if (confirmedCount + quantity > event.capacity)
       throw new EventFullException(event.name)
 
     // 6. Generate ticket ID via TicketFactory (Factory Pattern)
     const ticketId = TicketFactory.generateId()
 
-    // 7. Generate QR code
-    const qrPayload = JSON.stringify({
-      ticketId,
-      eventId,
-      participantName: user.name,
-      issuedAt: new Date().toISOString(),
-    })
+    // 7. Generate QR code as an actionable URL so Google Lens/Camera recognizes it properly
+    const qrPayload = `http://localhost:3000/verify?ticket=${ticketId}&event=${encodeURIComponent(event.name)}&name=${encodeURIComponent(user.name)}&qty=${quantity}`
+    
     const qrCode = await QRCode.toDataURL(qrPayload, {
-      errorCorrectionLevel: "H",
+      errorCorrectionLevel: "M",
       type: "image/png",
       width: 300,
       margin: 2,
@@ -103,6 +100,7 @@ export class RegistrationService {
       participantId: participant.id,
       eventId,
       status: "confirmed",
+      quantity,
       ticketId,
       qrCode,
     })
@@ -138,14 +136,10 @@ export class RegistrationService {
     const participantName = participant?.user?.name ?? "Attendee"
 
     const ticket = TicketFactory.generateId()
-    const qrPayload = JSON.stringify({
-      ticketId: ticket,
-      eventId: registration.eventId,
-      participantName,
-      issuedAt: new Date().toISOString(),
-    })
+    const qrPayload = `http://localhost:3000/verify?ticket=${ticket}&event=${encodeURIComponent(String(registration.eventId))}&name=${encodeURIComponent(participantName)}&qty=${registration.quantity}`
+    
     const qrCode = await QRCode.toDataURL(qrPayload, {
-      errorCorrectionLevel: "H",
+      errorCorrectionLevel: "M",
       type: "image/png",
       width: 300,
       margin: 2,

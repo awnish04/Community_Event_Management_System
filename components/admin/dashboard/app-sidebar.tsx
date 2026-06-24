@@ -71,6 +71,7 @@ export function AppSidebar({
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
+                  render={<Link href={item.url} />}
                   isActive={isActive}
                   tooltip={item.title}
                   className={
@@ -78,9 +79,6 @@ export function AppSidebar({
                       ? "bg-primary! text-white! hover:bg-primary/90! hover:text-white! [&>svg]:text-white!"
                       : "hover:bg-sidebar-accent"
                   }
-                  onClick={() => {
-                    window.location.href = item.url
-                  }}
                 >
                   <item.icon className="size-4" />
                   <span>{item.title}</span>

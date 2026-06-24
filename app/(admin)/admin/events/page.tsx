@@ -3,8 +3,8 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { EventsTable } from "@/components/admin/events/EventsTable"
 import { db } from "@/db"
-import { events, venues, activities } from "@/db/schema"
-import { desc } from "drizzle-orm"
+import { events, venues, activities, registrations } from "@/db/schema"
+import { desc, sql, eq } from "drizzle-orm"
 
 export const dynamic = "force-dynamic"
 
@@ -51,6 +51,26 @@ export default async function AdminEventsPage() {
     ])
 
     allEvents = eventsData
+
+    // Fetch registration counts
+    const counts = await db
+      .select({
+        eventId: registrations.eventId,
+        count: sql<number>`sum(quantity)`.as("count"),
+      })
+      .from(registrations)
+      .where(sql`${registrations.status} IN ('pending', 'confirmed')`)
+      .groupBy(registrations.eventId)
+      
+    const countMap = Object.fromEntries(
+      counts.map((c) => [c.eventId, Number(c.count)])
+    )
+
+    allEvents = allEvents.map(e => ({
+      ...e,
+      currentRegistrations: countMap[e.id] ?? 0
+    }))
+
     allVenues = venuesData
     allActivities = activitiesData
   } catch (err) {

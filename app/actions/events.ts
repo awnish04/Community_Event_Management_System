@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { db } from "@/db"
-import { venues } from "@/db/schema"
+import { venues, events } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
 // ── OOP layer imports ─────────────────────────────────────────────────────────
@@ -27,7 +27,6 @@ export async function createEvent(formData: FormData) {
   const description = formData.get("description") as string
   const eventDate = formData.get("eventDate") as string
   const eventTime = formData.get("eventTime") as string
-  const capacity = parseInt(formData.get("capacity") as string, 10)
   const imageUrl = (formData.get("imageUrl") as string) || null
   const venueIdRaw = formData.get("venueId") as string
   const venueId = venueIdRaw ? parseInt(venueIdRaw, 10) : null
@@ -37,8 +36,21 @@ export async function createEvent(formData: FormData) {
     .map((id) => parseInt(id, 10))
     .filter((id) => !isNaN(id))
 
-  if (!name || !description || !eventDate || !eventTime || !capacity) {
+  if (!name || !description || !eventDate || !eventTime) {
     throw new Error("All required fields must be filled.")
+  }
+
+  // Derive capacity from venue if one is selected
+  let capacity = 0
+  if (venueId) {
+    const venue = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1)
+    if (venue.length === 0) throw new Error("Selected venue not found.")
+    capacity = venue[0].capacity
+  } else {
+    // Fallback: try manual capacity from form (in case of no venue)
+    const manualCap = parseInt(formData.get("capacity") as string, 10)
+    if (!manualCap || manualCap <= 0) throw new Error("Please select a venue to set the event capacity.")
+    capacity = manualCap
   }
 
   // Delegate to EventService — demonstrates Service Layer + Repository Pattern
@@ -130,7 +142,6 @@ export async function editEvent(id: number, formData: FormData) {
   const description = formData.get("description") as string
   const eventDate = formData.get("eventDate") as string
   const eventTime = formData.get("eventTime") as string
-  const capacity = parseInt(formData.get("capacity") as string, 10)
   const imageUrl = (formData.get("imageUrl") as string) || null
   const venueIdRaw = formData.get("venueId") as string
   const venueId =
@@ -141,8 +152,21 @@ export async function editEvent(id: number, formData: FormData) {
     .map((id) => parseInt(id, 10))
     .filter((id) => !isNaN(id))
 
-  if (!name || !description || !eventDate || !eventTime || !capacity) {
+  if (!name || !description || !eventDate || !eventTime) {
     throw new Error("All required fields must be filled.")
+  }
+
+  // Derive capacity from venue if one is selected
+  let capacity = 0
+  if (venueId) {
+    const venue = await db.select().from(venues).where(eq(venues.id, venueId)).limit(1)
+    if (venue.length === 0) throw new Error("Selected venue not found.")
+    capacity = venue[0].capacity
+  } else {
+    // Fallback: try manual capacity from form
+    const manualCap = parseInt(formData.get("capacity") as string, 10)
+    if (!manualCap || manualCap <= 0) throw new Error("Please select a venue to set the event capacity.")
+    capacity = manualCap
   }
 
   // Delegate core update + relation sync to EventService
@@ -159,5 +183,21 @@ export async function editEvent(id: number, formData: FormData) {
 
   revalidatePath("/")
   revalidatePath("/events")
+  revalidatePath("/admin/events")
+}
+
+/**
+ * Cancel an event (sets status = "cancelled").
+ * This is an admin-only action.
+ */
+export async function cancelEvent(id: number): Promise<void> {
+  await db
+    .update(events)
+    .set({ status: "cancelled", updatedAt: new Date() })
+    .where(eq(events.id, id))
+
+  revalidatePath("/")
+  revalidatePath("/user/events")
+  revalidatePath("/user/registrations")
   revalidatePath("/admin/events")
 }

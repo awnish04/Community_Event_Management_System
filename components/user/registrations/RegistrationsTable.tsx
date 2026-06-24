@@ -33,6 +33,9 @@ import { EventTicketPdf } from "@/components/ui/event-ticket-pdf"
 interface Registration {
   id: string
   eventName: string
+  eventStatus?: string
+  status: string
+  quantity?: number
   attendeeName?: string
   attendeeEmail?: string
   registrationDate: string
@@ -188,6 +191,21 @@ function ViewTicketButton({ reg }: { reg: Registration }) {
 
   if (!reg.ticketId) return null
 
+  if (reg.eventStatus === "cancelled") {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button variant="ghost" size="icon-sm" disabled className="opacity-50">
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
+          }
+        />
+        <TooltipContent>Event Cancelled</TooltipContent>
+      </Tooltip>
+    )
+  }
+
   return (
     <Tooltip>
       <TooltipTrigger
@@ -242,26 +260,24 @@ function CancelRegistrationDialog({ reg }: { reg: Registration }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <Tooltip>
         <TooltipTrigger
-          
-        >
-          <div className="inline-block">
+          render={
             <DialogTrigger
-              
-            >
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                disabled={!canCancel}
-                className={
-                  "text-destructive hover:bg-destructive/10 hover:text-destructive " +
-                  (!canCancel ? "opacity-50 cursor-not-allowed" : "")
-                }
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </DialogTrigger>
-          </div>
-        </TooltipTrigger>
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={!canCancel}
+                  className={
+                    "text-destructive hover:bg-destructive/10 hover:text-destructive " +
+                    (!canCancel ? "opacity-50 cursor-not-allowed" : "")
+                  }
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
         <TooltipContent>{canCancel ? "Cancel Registration" : "Cannot cancel after 12 hours"}</TooltipContent>
       </Tooltip>
 
@@ -350,12 +366,21 @@ export function RegistrationsTable({
                   Venue
                 </th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                  Event Date
+                  Date
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                  Time
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                  Qty
                 </th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
                   Ticket ID
                 </th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Status
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground xl:table-cell">
                   Registered
                 </th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">
@@ -382,7 +407,7 @@ export function RegistrationsTable({
                     <td className="px-4 py-3">
                       <div>
                         <p className="font-medium">{reg.eventName}</p>
-                        <p className="text-xs text-muted-foreground md:hidden">
+                        <p className="text-xs text-muted-foreground md:hidden mt-0.5">
                           {reg.event.venue.name}
                         </p>
                       </div>
@@ -398,8 +423,13 @@ export function RegistrationsTable({
                           day: "numeric",
                           month: "short",
                         }
-                      )}{" "}
-                      • {reg.event.eventTime}
+                      )}
+                    </td>
+                    <td className="hidden px-4 py-3 text-sm text-muted-foreground lg:table-cell">
+                      {reg.event.eventTime}
+                    </td>
+                    <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+                      {reg.quantity ?? 1}
                     </td>
                     <td className="hidden px-4 py-3 lg:table-cell">
                       {reg.ticketId ? (
@@ -416,7 +446,16 @@ export function RegistrationsTable({
                         </span>
                       )}
                     </td>
-                    <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">
+                    <td className="px-4 py-3">
+                      {reg.eventStatus === "cancelled" ? (
+                        <Badge variant="destructive">Event Cancelled</Badge>
+                      ) : reg.status === "CONFIRMED" ? (
+                        <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">Confirmed</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="capitalize">{reg.status.toLowerCase()}</Badge>
+                      )}
+                    </td>
+                    <td className="hidden px-4 py-3 text-xs text-muted-foreground xl:table-cell">
                       {new Date(reg.registrationDate).toLocaleDateString(
                         "en-GB",
                         {

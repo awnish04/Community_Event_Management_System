@@ -216,7 +216,12 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
               key={event.id}
               className="relative flex flex-col overflow-hidden pt-0 shadow-sm transition-all hover:shadow-md"
             >
-              {event.userRegistrationStatus && (
+                {event.isCancelled && (
+                  <Badge variant="destructive" className="absolute left-3 top-3 z-10 font-medium">
+                    Event Cancelled
+                  </Badge>
+                )}
+                {event.userRegistrationStatus && !event.isCancelled && (
                 <div className="absolute right-3 top-3 z-10">
                   <Badge
                     variant="outline"
@@ -297,8 +302,8 @@ export function UserEventsView({ initialEvents }: UserEventsViewProps) {
                     >
                       <DialogTrigger
                         render={
-                          <Button className="w-full" disabled={event.isFull}>
-                            {event.isFull ? "Event Full" : "Register Now"}
+                          <Button className="w-full" disabled={event.isFull || event.isCancelled}>
+                            {event.isCancelled ? "Event Cancelled" : event.isFull ? "Event Full" : "Register Now"}
                           </Button>
                         }
                       />

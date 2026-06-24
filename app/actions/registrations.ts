@@ -40,7 +40,7 @@ export async function registerForEvent(
 ): Promise<RegisterResult> {
   const name = (formData.get("name") as string)?.trim()
   const email = (formData.get("email") as string)?.trim().toLowerCase()
-  const phone = (formData.get("phone") as string)?.trim() || null
+  const quantity = parseInt((formData.get("quantity") as string) || "1", 10)
 
   if (!name || !email) {
     return { success: false, error: "Name and email are required." }
@@ -56,7 +56,7 @@ export async function registerForEvent(
         name,
         email,
         password: "placeholder",
-        phone,
+        phone: null,
       })
     }
 
@@ -81,7 +81,8 @@ export async function registerForEvent(
     //               NotificationFactory (polymorphism), Custom Exceptions
     const { ticketId } = await registrationService.registerForEvent(
       participant.email, // pass through email — service resolves participant internally
-      eventId
+      eventId,
+      quantity
     )
 
     revalidatePath(`/events/${eventId}`)

@@ -6,6 +6,7 @@ export interface CreateRegistrationDto {
   ticketId: string
   qrCode: string
   status?: string
+  quantity?: number
 }
 
 export interface UpdateRegistrationDto {

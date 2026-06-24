@@ -64,6 +64,7 @@ export async function getDiscoverEvents(email: string) {
         eventTime: events.eventTime,
         capacity: events.capacity,
         imageUrl: events.imageUrl,
+        status: events.status,
         venueName: venues.name,
         venueId: venues.id,
       })
@@ -76,7 +77,7 @@ export async function getDiscoverEvents(email: string) {
     const counts = await db
       .select({
         eventId: registrations.eventId,
-        count: sql<number>`count(*)`.as("count"),
+        count: sql<number>`sum(quantity)`.as("count"),
       })
       .from(registrations)
       .where(sql`${registrations.status} IN ('pending', 'confirmed')`)
@@ -128,16 +129,19 @@ export async function getDiscoverEvents(email: string) {
 
     return allEvents.map((e) => {
       const registered = countMap[e.id] ?? 0
+      const isCancelled = e.status === "cancelled"
       return {
         id: String(e.id),
         name: e.name,
         description: e.description,
-        eventDate: e.eventDate.toISOString().split("T")[0], // Keep as YYYY-MM-DD
+        eventDate: e.eventDate.toISOString().split("T")[0],
         eventTime: e.eventTime,
         capacity: e.capacity,
         imageUrl: e.imageUrl,
+        status: e.status,
+        isCancelled,
         currentRegistrations: registered,
-        isFull: registered >= e.capacity,
+        isFull: !isCancelled && registered >= e.capacity,
         venue: { id: String(e.venueId), name: e.venueName || "TBA" },
         activities: activityMap.get(e.id) || [],
         userRegistrationStatus: userRegMap.get(e.id) || null,
@@ -171,10 +175,12 @@ export async function getUserRegistrations(email: string) {
         id: registrations.id,
         eventId: registrations.eventId,
         status: registrations.status,
+        quantity: registrations.quantity,
         ticketId: registrations.ticketId,
         qrCode: registrations.qrCode,
         registrationDate: registrations.registrationDate,
         eventName: events.name,
+        eventStatus: events.status,
         eventDate: events.eventDate,
         eventTime: events.eventTime,
         venueName: venues.name,
@@ -196,7 +202,9 @@ export async function getUserRegistrations(email: string) {
       id: String(r.id),
       eventId: String(r.eventId),
       eventName: r.eventName,
+      eventStatus: r.eventStatus,
       status: r.status.toUpperCase(),
+      quantity: r.quantity ?? 1,
       ticketId: r.ticketId || undefined,
       qrCode: r.qrCode || undefined,
       registrationDate: r.registrationDate.toISOString(),

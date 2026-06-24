@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import {
   Card,
@@ -39,15 +40,24 @@ import {
   Eye,
   CalendarPlus,
   Loader2,
+  ChevronDown,
+  Clock,
+  Calendar as CalendarIcon,
 } from "lucide-react"
-import Link from "next/link"
-import { createEvent, editEvent, deleteEvent } from "@/app/actions/events"
+
+import { createEvent, editEvent, deleteEvent, cancelEvent } from "@/app/actions/events"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { ImageUploadPicker } from "./ImageUploadPicker"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface Event {
   id: number
@@ -56,6 +66,9 @@ interface Event {
   eventDate: Date
   eventTime: string
   capacity: number
+  currentRegistrations: number
+  imageUrl: string | null
+  status: string
   createdAt: Date
 }
 
@@ -76,8 +89,12 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [selectedTime, setSelectedTime] = useState<string>("10:00")
   const [venueId, setVenueId] = useState<string>("")
   const [venueName, setVenueName] = useState<string>("")
+  const [venueCapacity, setVenueCapacity] = useState<number | null>(null)
   const [activityId, setActivityId] = useState<string>("")
   const [activityName, setActivityName] = useState<string>("")
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -88,8 +105,12 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
       setOpen(val)
       if (!val) {
         setError(null)
+        setDatePickerOpen(false)
+        setSelectedDate(undefined)
+        setSelectedTime("10:00")
         setVenueId("")
         setVenueName("")
+        setVenueCapacity(null)
         setActivityId("")
         setActivityName("")
         setImageUrl(null)
@@ -163,28 +184,76 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
             />
           </div>
 
+          {/* Hidden inputs submitted to server action */}
+          {selectedDate && (
+            <input
+              type="hidden"
+              name="eventDate"
+              value={format(selectedDate, "yyyy-MM-dd")}
+            />
+          )}
+          <input type="hidden" name="eventTime" value={selectedTime} />
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="ev-date">Date *</Label>
-              <Input id="ev-date" name="eventDate" type="date" required />
+            {/* Date picker */}
+            <div className="min-w-0 space-y-1.5">
+              <Label>Date *</Label>
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      id="ev-date"
+                      className="w-full justify-between font-normal"
+                    />
+                  }
+                >
+                  {selectedDate ? (
+                    format(selectedDate, "MMM d, yyyy")
+                  ) : (
+                    <span className="text-muted-foreground">Pick a date</span>
+                  )}
+                  <CalendarIcon className="h-4 w-4 opacity-50" />
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto overflow-hidden p-0"
+                  align="start"
+                >
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    captionLayout="dropdown"
+                    defaultMonth={selectedDate}
+                    onSelect={(d) => {
+                      setSelectedDate(d)
+                      setDatePickerOpen(false)
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="ev-time">Time *</Label>
-              <Input id="ev-time" name="eventTime" type="time" required />
+
+            {/* Time picker */}
+            <div className="min-w-0 space-y-1.5">
+              <Label htmlFor="ev-time-create">Time *</Label>
+              <div className="relative w-full">
+                <Clock className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="time"
+                  id="ev-time-create"
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  className="w-full appearance-none pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  required
+                />
+              </div>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="ev-capacity">Capacity *</Label>
-            <Input
-              id="ev-capacity"
-              name="capacity"
-              type="number"
-              min="1"
-              placeholder="e.g. 100"
-              required
-            />
-          </div>
+          {venueCapacity !== null && (
+            <input type="hidden" name="capacity" value={venueCapacity} />
+          )}
 
           <ImageUploadPicker
             label="Event Image"
@@ -206,9 +275,13 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
               onValueChange={(val) => {
                 setVenueId(val ?? "")
                 const found = venues.find((v) => String(v.id) === val)
-                if (found)
-                  setVenueName(`${found.name} (cap. ${found.capacity})`)
-                else setVenueName("")
+                if (found) {
+                  setVenueName(found.name)
+                  setVenueCapacity(found.capacity)
+                } else {
+                  setVenueName("")
+                  setVenueCapacity(null)
+                }
               }}
             >
               <SelectTrigger id="ev-venue" className="w-full">
@@ -234,6 +307,20 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
                 )}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Capacity display — auto-derived from selected venue */}
+          <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+            <span className="text-muted-foreground">Capacity:</span>
+            {venueCapacity !== null ? (
+              <span className="font-semibold text-foreground">
+                {venueCapacity} seats
+              </span>
+            ) : (
+              <span className="text-muted-foreground italic">
+                Select a venue to set capacity automatically
+              </span>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -287,7 +374,11 @@ function CreateEventDialog({ venues, activities }: { venues: Venue[]; activities
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending || isUploadingImage} className="gap-2">
+            <Button
+              type="submit"
+              disabled={isPending || isUploadingImage}
+              className="gap-2"
+            >
               {isPending ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -310,22 +401,31 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
 
   const [venueId, setVenueId] = useState<string>("")
   const [venueName, setVenueName] = useState<string>("")
+  const [venueCapacity, setVenueCapacity] = useState<number | null>(null)
   const [activityId, setActivityId] = useState<string>("")
   const [activityName, setActivityName] = useState<string>("")
   const [imageUrl, setImageUrl] = useState<string | null>(event.imageUrl || null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [selectedTime, setSelectedTime] = useState<string>("10:00")
 
   function handleOpenChange(val: boolean) {
     if (!isPending) {
       setOpen(val)
       if (!val) {
         setError(null)
+        setDatePickerOpen(false)
       } else {
         setImageUrl(event.imageUrl || null)
         setIsUploadingImage(false)
+        // Pre-populate date and time from event
+        setSelectedDate(new Date(event.eventDate))
+        setSelectedTime(event.eventTime || "10:00")
         const currentVenueLink = (event as any).eventVenues?.[0]
         setVenueId(currentVenueLink ? String(currentVenueLink.venueId) : "")
-        setVenueName(currentVenueLink?.venue ? `${currentVenueLink.venue.name} (cap. ${currentVenueLink.venue.capacity})` : "")
+        setVenueName(currentVenueLink?.venue ? currentVenueLink.venue.name : "")
+        setVenueCapacity(currentVenueLink?.venue ? currentVenueLink.venue.capacity : null)
         
         const firstActivityLink = (event as any).eventActivities?.[0]
         setActivityId(firstActivityLink ? String(firstActivityLink.activityId) : "")
@@ -352,8 +452,6 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
     })
   }
 
-  // Format date to YYYY-MM-DD for the input
-  const dateStr = new Date(event.eventDate).toISOString().split("T")[0]
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -407,40 +505,77 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
             />
           </div>
 
+          {/* Hidden inputs submitted to server action */}
+          {selectedDate && (
+            <input
+              type="hidden"
+              name="eventDate"
+              value={format(selectedDate, "yyyy-MM-dd")}
+            />
+          )}
+          <input type="hidden" name="eventTime" value={selectedTime} />
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor={`ev-date-${event.id}`}>Date *</Label>
-              <Input
-                id={`ev-date-${event.id}`}
-                name="eventDate"
-                type="date"
-                defaultValue={dateStr}
-                required
-              />
+            {/* Date picker */}
+            <div className="min-w-0 space-y-1.5">
+              <Label>Date *</Label>
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      id={`ev-date-${event.id}`}
+                      className="w-full justify-between font-normal"
+                    />
+                  }
+                >
+                  {selectedDate ? (
+                    format(selectedDate, "MMM d, yyyy")
+                  ) : (
+                    <span className="text-muted-foreground">Pick a date</span>
+                  )}
+                  <CalendarIcon className="h-4 w-4 opacity-50" />
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto overflow-hidden p-0"
+                  align="start"
+                >
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    captionLayout="dropdown"
+                    defaultMonth={selectedDate}
+                    onSelect={(d) => {
+                      setSelectedDate(d)
+                      setDatePickerOpen(false)
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-            <div className="space-y-1.5">
+
+            {/* Time picker */}
+            <div className="min-w-0 space-y-1.5">
               <Label htmlFor={`ev-time-${event.id}`}>Time *</Label>
-              <Input
-                id={`ev-time-${event.id}`}
-                name="eventTime"
-                type="time"
-                defaultValue={event.eventTime}
-                required
-              />
+              <div className="relative w-full">
+                <Clock className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="time"
+                  id={`ev-time-${event.id}`}
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  className="w-full appearance-none pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  required
+                />
+              </div>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor={`ev-capacity-${event.id}`}>Capacity *</Label>
-            <Input
-              id={`ev-capacity-${event.id}`}
-              name="capacity"
-              type="number"
-              min="1"
-              defaultValue={event.capacity}
-              required
-            />
-          </div>
+          {/* Capacity is auto-derived from the selected venue */}
+          {venueCapacity !== null && (
+            <input type="hidden" name="capacity" value={venueCapacity} />
+          )}
 
           <ImageUploadPicker
             label="Event Image"
@@ -463,9 +598,13 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
               onValueChange={(val) => {
                 setVenueId(val ?? "")
                 const found = venues.find((v) => String(v.id) === val)
-                if (found)
-                  setVenueName(`${found.name} (cap. ${found.capacity})`)
-                else setVenueName("")
+                if (found) {
+                  setVenueName(found.name)
+                  setVenueCapacity(found.capacity)
+                } else {
+                  setVenueName("")
+                  setVenueCapacity(null)
+                }
               }}
             >
               <SelectTrigger id={`ev-venue-${event.id}`} className="w-full">
@@ -491,6 +630,16 @@ function EditEventDialog({ event, venues, activities }: { event: any; venues: Ve
                 )}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Capacity display — auto-derived from selected venue */}
+          <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+            <span className="text-muted-foreground">Capacity:</span>
+            {venueCapacity !== null ? (
+              <span className="font-semibold text-foreground">{venueCapacity} seats</span>
+            ) : (
+              <span className="italic text-muted-foreground">Select a venue to set capacity automatically</span>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -629,6 +778,77 @@ function DeleteEventDialog({ event }: { event: Event }) {
   )
 }
 
+function CancelEventDialog({ event }: { event: Event }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  function handleCancel() {
+    startTransition(async () => {
+      await cancelEvent(event.id)
+      setOpen(false)
+      router.refresh()
+    })
+  }
+
+  // Hide if already cancelled
+  if (event.status === "cancelled") return null
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Cancel Event</TooltipContent>
+      </Tooltip>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-amber-600">Cancel Event</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to cancel <strong>{event.name}</strong>? This will notify all registered participants and prevent further registrations. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={isPending}
+          >
+            Keep Event
+          </Button>
+          <Button
+            type="button"
+            onClick={handleCancel}
+            disabled={isPending}
+            className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Trash2 className="size-4" />
+            )}
+            {isPending ? "Cancelling..." : "Yes, Cancel Event"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function EventsTable({
   events,
   venues = [],
@@ -674,13 +894,25 @@ export function EventsTable({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground w-12 hidden md:table-cell">
+                  Image
+                </th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                   Event
                 </th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                  Date
+                  Venues
                 </th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                  Activities
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Date
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground xl:table-cell">
+                  Created
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                   Capacity
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
@@ -695,7 +927,7 @@ export function EventsTable({
               {filtered.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={9}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
                     {events.length === 0
@@ -711,36 +943,88 @@ export function EventsTable({
                       key={event.id}
                       className="transition-colors hover:bg-muted/30"
                     >
-                      <td className="px-4 py-3">
-                        <p className="font-medium">{event.name}</p>
-                        <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                          {event.description}
-                        </p>
-                      </td>
-                      <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
-                        <p>
-                          {new Date(event.eventDate).toLocaleDateString(
-                            "en-GB",
-                            {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            }
-                          )}
-                        </p>
-                        <p className="text-xs">{event.eventTime}</p>
-                      </td>
-                      <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
-                        {event.capacity}
+                      <td className="hidden px-4 py-3 md:table-cell">
+                        {event.imageUrl ? (
+                          <div className="h-10 w-10 overflow-hidden rounded-md border">
+                            <img src={event.imageUrl} alt={event.name} className="h-full w-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-muted text-muted-foreground">
+                            <CalendarPlus className="h-4 w-4" />
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3">
-                        <Badge variant={isUpcoming ? "default" : "secondary"}>
-                          {isUpcoming ? "Upcoming" : "Past"}
-                        </Badge>
+                        <div className="font-medium text-foreground">
+                          {event.name}
+                        </div>
+                      </td>
+                      <td className="hidden px-4 py-3 md:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {(event as any).eventVenues?.map((ev: any) => (
+                            <Badge
+                              key={ev.venue.id}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {ev.venue.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="hidden px-4 py-3 lg:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {(event as any).eventActivities?.map((ea: any) => (
+                            <Badge
+                              key={ea.activity.id}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {ea.activity.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {new Date(event.eventDate).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              }
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {event.eventTime}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="hidden px-4 py-3 text-xs text-muted-foreground xl:table-cell">
+                        {new Date(event.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {event.currentRegistrations} / {event.capacity}
+                      </td>
+                      <td className="px-4 py-3">
+                        {event.status === "cancelled" ? (
+                          <Badge variant="destructive">Cancelled</Badge>
+                        ) : (
+                          <Badge variant={isUpcoming ? "default" : "secondary"}>
+                            {isUpcoming ? "Upcoming" : "Past"}
+                          </Badge>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <EditEventDialog event={event} venues={venues} activities={activities} />
+                          <CancelEventDialog event={event} />
                           <DeleteEventDialog event={event} />
                         </div>
                       </td>

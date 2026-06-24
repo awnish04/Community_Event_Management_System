@@ -75,6 +75,7 @@ export const events = pgTable("events", {
   eventTime: varchar("event_time", { length: 50 }).notNull(),
   capacity: integer("capacity").notNull(),
   imageUrl: text("image_url"),
+  status: varchar("status", { length: 50 }).default("active").notNull(),
   createdBy: integer("created_by").references(() => administrators.id, {
     onDelete: "set null",
   }),
@@ -92,6 +93,7 @@ export const registrations = pgTable("registrations", {
     .references(() => events.id, { onDelete: "cascade" })
     .notNull(),
   status: varchar("status", { length: 50 }).default("confirmed").notNull(),
+  quantity: integer("quantity").default(1).notNull(),
   ticketId: varchar("ticket_id", { length: 255 }).unique(),
   qrCode: text("qr_code"),
   registrationDate: timestamp("registration_date").defaultNow().notNull(),

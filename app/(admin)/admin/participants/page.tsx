@@ -39,6 +39,8 @@ export default async function AdminParticipantsPage() {
       userEmail: r.participant?.user?.email || "No email",
       userPhone: r.participant?.user?.phone || null,
       eventName: r.event?.name || "TBA",
+      status: r.status || "confirmed",
+      quantity: r.quantity || 1,
       ticketId: r.ticketId || null,
       qrCode: r.qrCode || null,
     }))

@@ -9,6 +9,9 @@ import { redirect } from "next/navigation"
 interface Registration {
   id: string
   eventName: string
+  eventStatus?: string
+  status: string
+  quantity?: number
   registrationDate: string
   ticketId?: string
   qrCode?: string

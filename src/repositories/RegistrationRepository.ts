@@ -58,6 +58,7 @@ export class RegistrationRepository implements IRegistrationRepository {
         participantId: data.participantId,
         eventId: data.eventId,
         status: data.status ?? "confirmed",
+        quantity: data.quantity ?? 1,
         ticketId: data.ticketId,
         qrCode: data.qrCode,
       })
@@ -88,7 +89,7 @@ export class RegistrationRepository implements IRegistrationRepository {
 
   async countConfirmedForEvent(eventId: number): Promise<number> {
     const result = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql<number>`sum(quantity)` })
       .from(registrations)
       .where(
         and(

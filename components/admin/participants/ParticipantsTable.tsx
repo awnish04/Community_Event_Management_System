@@ -37,6 +37,8 @@ interface Registration {
   userEmail: string
   userPhone: string | null
   eventName: string
+  status: string
+  quantity: number
   ticketId: string | null
   qrCode: string | null
 }
@@ -165,7 +167,13 @@ export function ParticipantsTable({
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
                   Ticket ID
                 </th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                  Quantity
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Status
+                </th>
+                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground xl:table-cell">
                   Registered
                 </th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">
@@ -236,7 +244,19 @@ export function ParticipantsTable({
                           </span>
                         )}
                       </td>
-                      <td className="hidden px-4 py-3 text-xs text-muted-foreground lg:table-cell">
+                      <td className="hidden px-4 py-3 md:table-cell text-muted-foreground">
+                        {reg.quantity}
+                      </td>
+                      <td className="px-4 py-3">
+                        {reg.status === "cancelled" ? (
+                          <Badge variant="destructive">Cancelled</Badge>
+                        ) : reg.status === "confirmed" ? (
+                          <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">Confirmed</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="capitalize">{reg.status}</Badge>
+                        )}
+                      </td>
+                      <td className="hidden px-4 py-3 text-xs text-muted-foreground xl:table-cell">
                         {new Date(reg.registrationDate).toLocaleDateString(
                           "en-GB",
                           {
