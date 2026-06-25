@@ -28,7 +28,6 @@ function buildAuthResponse(
     id: string
     name: string
     email: string
-    phone?: string
     role: "ADMIN" | "USER"
     createdAt: string
   },
@@ -88,7 +87,6 @@ export async function POST(req: NextRequest) {
         admin.id,
         admin.name,
         admin.email,
-        admin.phone ?? null,
         admin.createdAt
       )
 
@@ -100,7 +98,6 @@ export async function POST(req: NextRequest) {
         id: String(adminModel.id),
         name: adminModel.name,
         email: adminModel.email,
-        phone: adminModel.phone ?? undefined,
         role: "ADMIN" as const,
         createdAt: adminModel.createdAt.toISOString(),
       })
@@ -133,7 +130,6 @@ export async function POST(req: NextRequest) {
         id: String(userDto.id),
         name: userDto.name,
         email: userDto.email,
-        phone: userDto.phone ?? undefined,
         role: "USER" as const,
         createdAt: userDto.createdAt.toISOString(),
       })

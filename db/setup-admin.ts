@@ -20,7 +20,6 @@ async function setupAdmin() {
       name: "Admin",
       email: "admin@eventhub.com",
       password: "admin123",
-      phone: null,
     })
     .returning()
 

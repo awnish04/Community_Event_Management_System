@@ -37,7 +37,6 @@ export default async function AdminParticipantsPage() {
       registrationDate: r.registrationDate,
       userName: r.participant?.user?.name || "Anonymous",
       userEmail: r.participant?.user?.email || "No email",
-      userPhone: r.participant?.user?.phone || null,
       eventName: r.event?.name || "TBA",
       status: r.status || "confirmed",
       quantity: r.quantity || 1,

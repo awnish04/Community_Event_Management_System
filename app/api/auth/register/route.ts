@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm"
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password, phone } = await req.json()
+    const { name, email, password } = await req.json()
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -32,7 +32,6 @@ export async function POST(req: NextRequest) {
         name: name.trim(),
         email: normalizedEmail,
         password, // plain-text; use bcrypt in production
-        phone: phone?.trim() || null,
       })
       .returning()
 
@@ -44,7 +43,6 @@ export async function POST(req: NextRequest) {
         id: String(newUser.id),
         name: newUser.name,
         email: newUser.email,
-        phone: newUser.phone ?? undefined,
         role: "USER" as const,
         createdAt: newUser.createdAt.toISOString(),
       },

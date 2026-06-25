@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { IRegistrationRepository } from "@/src/repositories/interfaces/IRegistrationRepository"
 import type { IEventRepository } from "@/src/repositories/interfaces/IEventRepository"
 import type { IUserRepository } from "@/src/repositories/interfaces/IUserRepository"
 import type { RegistrationDto } from "@/src/domain/dto/RegistrationDto"
 import { TicketFactory } from "@/src/domain/models/Ticket"
-import { NotificationFactory } from "@/src/domain/notifications/Notification"
 import {
   EventFullException,
   DuplicateRegistrationException,
@@ -21,8 +21,7 @@ import QRCode from "qrcode"
 // Demonstrates:
 //   ✅ Dependency Injection (3 repositories injected via constructor)
 //   ✅ Custom Exceptions (EventFullException, DuplicateRegistrationException)
-//   ✅ Factory Pattern (TicketFactory, NotificationFactory)
-//   ✅ Polymorphism (NotificationFactory.sendAll dispatches to EmailNotification + SmsNotification)
+//   ✅ Factory Pattern (TicketFactory)
 
 export class RegistrationService {
   // Constructor Dependency Injection — receives interfaces, not concrete classes
@@ -105,15 +104,6 @@ export class RegistrationService {
       ticketId,
       qrCode,
     })
-
-    // 9. Send notification via NotificationFactory (Polymorphism)
-    await NotificationFactory.create("EMAIL", {
-      recipientName: user.name,
-      recipientEmail: user.email,
-      recipientPhone: user.phone,
-      subject: `Your ticket for ${event.name}`,
-      message: `You are registered for ${event.name}. Your ticket ID is: ${ticketId}`,
-    }).send()
 
     return { registration, ticketId }
   }

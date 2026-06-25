@@ -7,7 +7,6 @@ export interface User {
   id: string
   name: string
   email: string
-  phone?: string
   role: "ADMIN" | "USER"
   createdAt: string
 }
@@ -24,8 +23,7 @@ interface AuthContextType {
   register: (
     name: string,
     email: string,
-    password: string,
-    phone?: string
+    password: string
   ) => Promise<void>
   logout: () => void
   error: string | null
@@ -113,8 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (
     name: string,
     email: string,
-    password: string,
-    phone?: string
+    password: string
   ) => {
     setLoading(true)
     setError(null)
@@ -122,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, phone }),
+        body: JSON.stringify({ name, email, password }),
       })
 
       const data = await res.json()

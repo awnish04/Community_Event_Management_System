@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import {
   Card,
   CardContent,
@@ -232,7 +231,6 @@ function ViewTicketButton({ reg }: { reg: Registration }) {
 
 // ── Cancel Registration Dialog ────────────────────────────────────────────────
 function CancelRegistrationDialog({ reg }: { reg: Registration }) {
-  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [canCancel, setCanCancel] = useState(true)
@@ -249,9 +247,13 @@ function CancelRegistrationDialog({ reg }: { reg: Registration }) {
       try {
         await deleteRegistration(parseInt(reg.id, 10))
         setOpen(false)
-        router.refresh()
+        // revalidatePath inside deleteRegistration handles the server-side
+        // data refresh. Do NOT call router.refresh() here — it triggers a
+        // full server re-render that re-runs page-level auth cookie checks,
+        // which causes erroneous redirects to login.
       } catch (err) {
         console.error("Cancel registration failed:", err)
+        setOpen(false)
       }
     })
   }

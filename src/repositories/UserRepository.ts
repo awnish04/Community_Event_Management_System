@@ -38,7 +38,6 @@ export class UserRepository implements IUserRepository {
         name: data.name,
         email: data.email.toLowerCase().trim(),
         password: data.password,
-        phone: data.phone ?? null,
       })
       .returning()
     return created
@@ -49,7 +48,6 @@ export class UserRepository implements IUserRepository {
       .update(users)
       .set({
         ...(data.name !== undefined && { name: data.name }),
-        ...(data.phone !== undefined && { phone: data.phone }),
         updatedAt: new Date(),
       })
       .where(eq(users.id, id))

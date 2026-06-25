@@ -35,7 +35,6 @@ interface Registration {
   registrationDate: Date
   userName: string
   userEmail: string
-  userPhone: string | null
   eventName: string
   status: string
   quantity: number
@@ -161,9 +160,6 @@ export function ParticipantsTable({
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                   Event
                 </th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                  Phone
-                </th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
                   Ticket ID
                 </th>
@@ -224,9 +220,6 @@ export function ParticipantsTable({
                         <p className="font-medium text-foreground">
                           {reg.eventName}
                         </p>
-                      </td>
-                      <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
-                        {reg.userPhone ?? "—"}
                       </td>
                       <td className="hidden px-4 py-3 lg:table-cell">
                         {reg.ticketId ? (

@@ -6,22 +6,15 @@ export class User {
     public readonly id: number,
     public readonly name: string,
     public readonly email: string,
-    public readonly phone: string | null,
     public readonly createdAt: Date
   ) {}
 
   // Returns a display-safe representation (no password)
-  toProfile(): {
-    id: number
-    name: string
-    email: string
-    phone: string | null
-  } {
+  toProfile(): { id: number; name: string; email: string } {
     return {
       id: this.id,
       name: this.name,
       email: this.email,
-      phone: this.phone,
     }
   }
 
@@ -45,11 +38,10 @@ export class Participant extends User {
     id: number,
     name: string,
     email: string,
-    phone: string | null,
     createdAt: Date,
     registrations: string[] = []
   ) {
-    super(id, name, email, phone, createdAt) // calls User constructor
+    super(id, name, email, createdAt) // calls User constructor
     this.registrations = registrations
   }
 
@@ -76,7 +68,6 @@ export class Administrator extends User {
     id: number,
     name: string,
     email: string,
-    phone: string | null,
     createdAt: Date,
     permissions: string[] = [
       "manage_events",
@@ -85,7 +76,7 @@ export class Administrator extends User {
       "view_reports",
     ]
   ) {
-    super(id, name, email, phone, createdAt) // calls User constructor
+    super(id, name, email, createdAt) // calls User constructor
     this.permissions = permissions
   }
 

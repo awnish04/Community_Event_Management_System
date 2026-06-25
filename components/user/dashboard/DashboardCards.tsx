@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, Ticket, CalendarCheck, CalendarClock } from "lucide-react"
+import Link from "next/link"
 
 interface DashboardCardsProps {
   totalRegistrations: number
@@ -24,6 +25,7 @@ export function DashboardCards({
       icon: Ticket,
       color: "text-blue-600 dark:text-blue-400",
       bgColor: "bg-blue-50 dark:bg-blue-950/20",
+      href: "/user/registrations",
     },
     {
       title: "Confirmed",
@@ -32,6 +34,7 @@ export function DashboardCards({
       icon: CalendarCheck,
       color: "text-emerald-600 dark:text-emerald-400",
       bgColor: "bg-emerald-50 dark:bg-emerald-950/20",
+      href: "/user/registrations",
     },
     {
       title: "Upcoming Events",
@@ -40,6 +43,7 @@ export function DashboardCards({
       icon: CalendarClock,
       color: "text-amber-600 dark:text-amber-400",
       bgColor: "bg-amber-50 dark:bg-amber-950/20",
+      href: "/user/events",
     },
     {
       title: "Total Events",
@@ -48,25 +52,55 @@ export function DashboardCards({
       icon: Calendar,
       color: "text-purple-600 dark:text-purple-400",
       bgColor: "bg-purple-50 dark:bg-purple-950/20",
+      href: "/user/events",
     },
   ]
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card) => (
-        <Card key={card.title} className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-            <div className={`rounded-lg p-2 ${card.bgColor}`}>
-              <card.icon className={`h-4 w-4 ${card.color}`} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{card.value}</div>
-            <p className="text-xs text-muted-foreground">{card.description}</p>
-          </CardContent>
-        </Card>
-      ))}
+      {cards.map((card) => {
+        if (card.href) {
+          return (
+            <Link key={card.title} href={card.href} className="block">
+              <Card className="cursor-pointer overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-primary/30 hover:shadow-lg active:scale-[0.98]">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {card.title}
+                  </CardTitle>
+                  <div className={`rounded-lg p-2 ${card.bgColor}`}>
+                    <card.icon className={`h-4 w-4 ${card.color}`} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{card.value}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {card.description}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          )
+        }
+
+        return (
+          <Card key={card.title} className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {card.title}
+              </CardTitle>
+              <div className={`rounded-lg p-2 ${card.bgColor}`}>
+                <card.icon className={`h-4 w-4 ${card.color}`} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{card.value}</div>
+              <p className="text-xs text-muted-foreground">
+                {card.description}
+              </p>
+            </CardContent>
+          </Card>
+        )
+      })}
     </div>
   )
 }

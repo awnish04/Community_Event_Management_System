@@ -77,7 +77,7 @@ export default function RegisterPage() {
 
     setLoading(true)
     try {
-      await register(name, email, password, undefined)
+      await register(name, email, password)
       toast.success("Account created successfully!", {
         description: "Please log in with your credentials.",
       })

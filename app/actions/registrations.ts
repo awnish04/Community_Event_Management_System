@@ -30,9 +30,8 @@ export type RegisterResult =
  *     → RegistrationService.registerForEvent()  [Service]
  *       → RegistrationRepository.findDuplicate()  [Repository → DB]
  *       → RegistrationRepository.countConfirmedForEvent()  [Repository → DB]
- *       → TicketFactory.create()  [Factory Pattern]
+ *       → TicketFactory.generateId()  [Factory Pattern]
  *       → RegistrationRepository.create()  [Repository → DB]
- *       → NotificationFactory.create("EMAIL").send()  [Polymorphism]
  */
 export async function registerForEvent(
   eventId: number,
@@ -56,7 +55,6 @@ export async function registerForEvent(
         name,
         email,
         password: "placeholder",
-        phone: null,
       })
     }
 
@@ -66,7 +64,6 @@ export async function registerForEvent(
       userDto.id,
       userDto.name,
       userDto.email,
-      userDto.phone ?? null,
       userDto.createdAt
     )
 
@@ -77,8 +74,7 @@ export async function registerForEvent(
     )
 
     // ── Step 3: Delegate to RegistrationService ───────────────────────────────
-    // Demonstrates: Service Layer, Repository Pattern, TicketFactory,
-    //               NotificationFactory (polymorphism), Custom Exceptions
+    // Demonstrates: Service Layer, Repository Pattern, TicketFactory, Custom Exceptions
     const { ticketId } = await registrationService.registerForEvent(
       participant.email, // pass through email — service resolves participant internally
       eventId,
